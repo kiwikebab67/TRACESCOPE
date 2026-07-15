@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Investigation Case</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<div class="case-container">
+
+    <h1>Create Investigation Case</h1>
+
+    <form>
+
+        <label>Case Name</label>
+        <input type="text" placeholder="Employee Data Theft">
+
+        <label>Investigator Name</label>
+        <input type="text" placeholder="Kaushiki">
+
+        <label>Priority</label>
+
+        <select>
+
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+            <option>Critical</option>
+
+        </select>
+
+        <button>Create Case</button>
+
+    </form>
+
+</div>
+
+</body>
+
+</html>
