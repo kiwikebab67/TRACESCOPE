@@ -4,54 +4,60 @@
     <meta charset="UTF-8">
     <title>TraceScope | Case Workspace</title>
     <style>
-        /* PERMANENT ZOOM SCALE */
-        html { font-size: 26px; }
+        /* Standard Scale */
+        html { font-size: 16px; }
         
         body { 
-            margin: 0; padding: 40px; font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: radial-gradient(circle at top right, #2e1065 0%, #0f172a 60%, #020617 100%);
+            margin: 0; padding: 40px 0; font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #1e1040 0%, #0b112c 100%);
             color: #f8fafc; min-height: 100vh;
         }
-        /* WIDENED CONTAINER TO FILL SCREEN */
-        .container { width: 95%; margin: 0 auto; }
+        
+        /* Fullscreen Container */
+        .container { width: 95%; max-width: 1800px; margin: 0 auto; }
         
         .header { 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px);
-            padding: 40px; border-radius: 12px; border: 1px solid #312e81;
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(11, 17, 44, 0.5); backdrop-filter: blur(10px);
+            padding: 30px 40px; border-radius: 8px; border: 1px solid #2e355c;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
         }
-        h1 { font-size: 3rem; margin: 0; color: #fff; text-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
-        .meta { font-size: 1.2rem; color: #38bdf8; margin-top: 10px; }
+        h1 { font-size: 2.5rem; margin: 0; color: #fff; font-weight: bold; }
+        .meta { font-size: 1.1rem; color: #38bdf8; margin-top: 5px; }
         
         .btn { 
-            font-size: 1.2rem; padding: 15px 30px; background: #a855f7; color: #fff; 
-            text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; transition: 0.3s;
+            font-size: 1rem; padding: 12px 25px; background: transparent; 
+            border: 1px solid #38bdf8; color: #38bdf8; text-decoration: none; 
+            border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.3s;
         }
-        .btn:hover { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
+        .btn:hover { background: #38bdf8; color: #000; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        
+        .btn-primary {
+            background: #a855f7; border: none; color: #fff; width: 100%;
+            padding: 15px; border-radius: 4px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-primary:hover { background: #9333ea; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
 
         .grid { display: grid; grid-template-columns: 450px 1fr; gap: 40px; }
         
         .panel { 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px);
-            padding: 40px; border-radius: 12px; border: 1px solid #312e81;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(11, 17, 44, 0.5); backdrop-filter: blur(10px);
+            padding: 30px; border-radius: 8px; border: 1px solid #2e355c;
         }
-        h3 { font-size: 1.8rem; color: #a855f7; margin-top: 0; margin-bottom: 30px; border-bottom: 1px solid #312e81; padding-bottom: 15px; }
+        h3 { font-size: 1.5rem; color: #a855f7; margin-top: 0; margin-bottom: 25px; border-bottom: 1px solid #2e355c; padding-bottom: 15px; }
         
         table { width: 100%; border-collapse: collapse; }
-        th { font-size: 1.1rem; color: #38bdf8; padding: 20px; text-align: left; border-bottom: 2px solid #312e81; }
-        td { font-size: 1.2rem; padding: 20px; border-bottom: 1px solid #1e1b4b; }
+        th { font-size: 1.1rem; color: #38bdf8; padding: 15px; text-align: left; border-bottom: 2px solid #2e355c; }
+        td { font-size: 1rem; padding: 15px; border-bottom: 1px solid #1e1040; }
 
         .api-terminal {
-            margin-top: 40px; background: #020617; border: 1px solid #38bdf8; border-radius: 8px; padding: 30px;
-            font-family: 'Consolas', monospace; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+            margin-top: 40px; background: #020617; border: 1px solid #38bdf8; border-radius: 8px; padding: 25px;
+            font-family: 'Consolas', monospace; box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
         }
         .api-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 15px;}
-        .api-title { font-size: 1.3rem; color: #38bdf8; margin: 0; }
-        .api-btn { font-size: 1rem; background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 10px 20px; cursor: pointer; border-radius: 4px; transition: 0.3s; font-weight: bold; text-transform: uppercase; }
+        .api-title { font-size: 1.2rem; color: #38bdf8; margin: 0; }
+        .api-btn { font-size: 0.9rem; background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 8px 15px; cursor: pointer; border-radius: 4px; transition: 0.3s; font-weight: bold; text-transform: uppercase; }
         .api-btn:hover { background: #38bdf8; color: #020617; }
-        .api-output { font-size: 1.1rem; color: #10b981; min-height: 120px; white-space: pre-line; }
+        .api-output { font-size: 1rem; color: #10b981; min-height: 120px; white-space: pre-line; }
     </style>
 </head>
 <body>
@@ -68,12 +74,12 @@
             <div class="panel">
                 <h3>Evidence Registry</h3>
                 <form action="{{ url_for('upload_evidence', case_id=case.id) }}" method="POST" enctype="multipart/form-data">
-                    <input type="file" name="evidence_file" style="width: 100%; font-size: 1.2rem; background: #020617; color: white; padding: 15px; border: 1px solid #312e81; margin-bottom: 20px; border-radius: 6px;">
-                    <button type="submit" class="btn" style="width: 100%;">Ingest Artifact</button>
+                    <input type="file" name="evidence_file" style="width: 100%; font-size: 1rem; background: #0b112c; color: white; padding: 15px; border: 1px solid #2e355c; margin-bottom: 20px; border-radius: 4px; box-sizing: border-box;">
+                    <button type="submit" class="btn-primary">Ingest Artifact</button>
                 </form>
                 <div style="margin-top:40px;">
                     {% for ev in case.evidence %}
-                    <div style="background: rgba(2, 6, 23, 0.8); padding: 20px; border-left: 5px solid #38bdf8; margin-bottom: 15px; font-size: 1.2rem; border-radius: 4px;">
+                    <div style="background: #0b112c; padding: 20px; border-left: 4px solid #38bdf8; margin-bottom: 15px; font-size: 1.1rem; border-radius: 4px; border: 1px solid #2e355c; border-left-width: 4px;">
                         {{ ev.filename }}
                     </div>
                     {% endfor %}

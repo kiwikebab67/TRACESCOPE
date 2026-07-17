@@ -4,60 +4,63 @@
     <meta charset="UTF-8">
     <title>TraceScope | Case Directory</title>
     <style>
-        /* PERMANENT ZOOM SCALE */
-        html { font-size: 26px; }
+        /* Standard Scale */
+        html { font-size: 16px; }
         
         body { 
-            margin: 0; padding: 40px; font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: radial-gradient(circle at top left, #2e1065 0%, #0f172a 50%, #020617 100%);
+            margin: 0; padding: 40px 0; font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #1e1040 0%, #0b112c 100%);
             color: #f8fafc; min-height: 100vh;
         }
-        /* WIDENED CONTAINER TO FILL SCREEN */
-        .container { width: 95%; margin: 0 auto; }
+        
+        /* Fullscreen Container */
+        .container { width: 95%; max-width: 1800px; margin: 0 auto; }
         
         .header { 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px);
-            padding: 40px; border-radius: 12px; border: 1px solid #312e81;
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(11, 17, 44, 0.5); backdrop-filter: blur(10px);
+            padding: 30px 40px; border-radius: 8px; border: 1px solid #2e355c;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
         }
-        h1 { font-size: 3rem; margin: 0; color: #fff; text-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
-        .meta { font-size: 1.2rem; color: #38bdf8; margin-top: 10px; }
+        h1 { font-size: 2.5rem; margin: 0; color: #fff; font-weight: bold; }
+        .meta { font-size: 1.1rem; color: #38bdf8; margin-top: 5px; }
         
         .btn { 
-            font-size: 1.2rem; padding: 15px 30px; background: #a855f7; color: #fff; 
-            text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; transition: 0.3s;
-            display: inline-block; text-align: center;
+            font-size: 1rem; padding: 12px 25px; background: transparent; 
+            border: 1px solid #38bdf8; color: #38bdf8; text-decoration: none; 
+            border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.3s;
         }
-        .btn:hover { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); background: #9333ea; }
-        .btn-outline { background: transparent; border: 2px solid #38bdf8; color: #38bdf8; }
-        .btn-outline:hover { background: #38bdf8; color: #020617; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); }
+        .btn:hover { background: #38bdf8; color: #000; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        
+        .btn-primary {
+            background: #a855f7; border: none; color: #fff; width: 100%;
+            padding: 15px; border-radius: 4px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-primary:hover { background: #9333ea; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
 
-        .grid { display: grid; grid-template-columns: 500px 1fr; gap: 40px; }
+        .grid { display: grid; grid-template-columns: 450px 1fr; gap: 40px; }
         
         .panel { 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px);
-            padding: 40px; border-radius: 12px; border: 1px solid #312e81;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(11, 17, 44, 0.5); backdrop-filter: blur(10px);
+            padding: 30px; border-radius: 8px; border: 1px solid #2e355c;
         }
-        h3 { font-size: 1.8rem; color: #a855f7; margin-top: 0; margin-bottom: 30px; border-bottom: 1px solid #312e81; padding-bottom: 15px; }
+        h3 { font-size: 1.5rem; color: #a855f7; margin-top: 0; margin-bottom: 25px; border-bottom: 1px solid #2e355c; padding-bottom: 15px; }
 
-        label { display: block; font-size: 1.1rem; color: #38bdf8; margin-bottom: 8px; font-weight: bold; }
+        label { display: block; font-size: 1rem; color: #38bdf8; margin-bottom: 8px; font-weight: bold; }
         input, textarea {
-            width: 100%; font-size: 1.2rem; background: rgba(2, 6, 23, 0.8); color: #f8fafc;
-            padding: 15px; border: 1px solid #312e81; border-radius: 6px; margin-bottom: 25px;
-            font-family: 'Segoe UI', Tahoma, sans-serif; box-sizing: border-box; transition: 0.3s;
+            width: 100%; font-size: 1.1rem; background: #0b112c; color: #f8fafc;
+            padding: 15px; border: 1px solid #2e355c; border-radius: 4px; margin-bottom: 25px;
+            font-family: 'Segoe UI', Tahoma, sans-serif; box-sizing: border-box;
         }
-        input:focus, textarea:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+        input:focus, textarea:focus { outline: none; border-color: #a855f7; }
 
         .case-card {
-            background: rgba(2, 6, 23, 0.8); border: 1px solid #312e81; border-left: 5px solid #a855f7;
-            padding: 30px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
-            transition: 0.3s;
+            background: #0b112c; border: 1px solid #2e355c; border-left: 4px solid #a855f7;
+            padding: 25px; border-radius: 6px; margin-bottom: 20px; 
+            display: flex; justify-content: space-between; align-items: center; transition: 0.3s;
         }
-        .case-card:hover { border-color: #38bdf8; border-left-color: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.15); transform: translateX(5px); }
-        .case-title { font-size: 1.5rem; font-weight: bold; color: #fff; margin-bottom: 5px; }
-        .case-details { font-size: 1.1rem; color: #94a3b8; }
+        .case-card:hover { transform: translateX(5px); border-color: #38bdf8; box-shadow: 0 0 15px rgba(56,189,248,0.2); }
+        .case-title { font-size: 1.4rem; font-weight: bold; color: #fff; margin-bottom: 8px; }
+        .case-details { font-size: 1rem; color: #94a3b8; }
     </style>
 </head>
 <body>
@@ -67,7 +70,7 @@
                 <h1>Active Investigations</h1>
                 <div class="meta">Global Directory | TraceScope Command Center</div>
             </div>
-            <a href="/" class="btn btn-outline">Return to Home</a>
+            <a href="/" class="btn">Return to Home</a>
         </header>
 
         <div class="grid">
@@ -84,9 +87,9 @@
                     <input type="text" name="investigator" required placeholder="Agent / Analyst Name">
                     
                     <label>Case Description</label>
-                    <textarea name="description" rows="4" required placeholder="Brief summary..."></textarea>
+                    <textarea name="description" rows="4" required placeholder="Brief summary of the incident or objective..."></textarea>
                     
-                    <button type="submit" class="btn" style="width: 100%;">Create Case Workspace</button>
+                    <button type="submit" class="btn-primary">Create Case Workspace</button>
                 </form>
             </div>
 
@@ -99,11 +102,11 @@
                             <div class="case-title">{{ case.title }}</div>
                             <div class="case-details">ID: {{ case.case_number }} | Investigator: {{ case.investigator }}</div>
                         </div>
-                        <a href="{{ url_for('case_details', case_id=case.id) }}" class="btn btn-outline">Access</a>
+                        <a href="{{ url_for('case_details', case_id=case.id) }}" class="btn">Access Workspace</a>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div style="text-align: center; color: #38bdf8; font-size: 1.3rem; margin-top: 40px; padding: 40px; border: 1px dashed #312e81; border-radius: 8px;">
+                    <div style="text-align: center; color: #38bdf8; font-size: 1.2rem; margin-top: 30px; padding: 40px; border: 1px dashed #2e355c; border-radius: 6px;">
                         > NO ACTIVE CASES FOUND. INITIALIZE A NEW WORKSPACE.
                     </div>
                 {% endif %}
