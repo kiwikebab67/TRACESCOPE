@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FINAL REPORT | {{ case.case_number }}</title>
+    <style>
+        body { 
+            background-color: #030712; 
+            color: #e5e7eb; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding: 60px; 
+            line-height: 1.8;
+        }
+        .report-card { 
+            background: #111827; 
+            padding: 50px; 
+            border-radius: 20px; 
+            border: 2px solid #4f46e5;
+            box-shadow: 0 0 50px rgba(79, 70, 229, 0.2);
+        }
+        h1 { font-size: 3.5rem; color: #818cf8; margin-top: 0; }
+        h2 { font-size: 2.2rem; color: #6ee7b7; border-bottom: 2px solid #374151; padding-bottom: 10px; }
+        p, td, th { font-size: 1.4rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #1f2937; color: #818cf8; padding: 20px; text-align: left; }
+        td { padding: 20px; border-bottom: 1px solid #374151; }
+        .risk-high { color: #f87171; font-weight: bold; font-size: 1.6rem; text-transform: uppercase; }
+        .risk-low { color: #4ade80; font-weight: bold; font-size: 1.6rem; }
+    </style>
+</head>
+<body>
+    <div class="report-card">
+        <h1>FORENSIC INVESTIGATION REPORT</h1>
+        <p style="font-size: 1.8rem; color: #9ca3af;">
+            Case ID: <strong>{{ case.case_number }}</strong> | 
+            Investigator: <strong>{{ case.investigator }}</strong>
+        </p>
+
+        <h2>CASE SUMMARY</h2>
+        <p>{{ case.description }}</p>
+
+        <h2>EVIDENCE REGISTRY</h2>
+        <table>
+            <tr><th>File Name</th><th>SHA-256 Hash</th></tr>
+            {% for ev in case.evidence %}
+            <tr><td>{{ ev.filename }}</td><td>{{ ev.hash_sha256 }}</td></tr>
+            {% endfor %}
+        </table>
+
+        <h2>ANALYSIS FINDINGS</h2>
+        <table>
+            <tr><th>Timestamp</th><th>Source</th><th>Description</th><th>Risk</th></tr>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.time_created }}</td>
+                <td>{{ log.source }}</td>
+                <td>{{ log.description }}</td>
+                <td class="{% if log.risk_level == 'High' %}risk-high{% else %}risk-low{% endif %}">
+                    {{ log.risk_level }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>

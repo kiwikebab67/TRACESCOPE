@@ -1,57 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>TraceScope</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
-
+    <title>TraceScope | Command Center</title>
+    <style>
+        /* THIS ACTS AS A PERMANENT BROWSER ZOOM */
+        html { font-size: 26px; }
+        
+        body { 
+            margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: radial-gradient(circle at top left, #2e1065 0%, #0f172a 50%, #020617 100%);
+            color: #f8fafc; height: 100vh; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; text-align: center; overflow: hidden;
+        }
+        
+        h1 { font-size: 5rem; margin: 0; color: #fff; text-shadow: 0 0 30px rgba(168, 85, 247, 0.6); letter-spacing: 2px; }
+        p { font-size: 1.5rem; color: #38bdf8; margin-top: 10px; margin-bottom: 50px; letter-spacing: 3px; text-transform: uppercase; }
+        
+        .btn { 
+            font-size: 1.3rem; padding: 20px 50px; border-radius: 8px; background: transparent;
+            border: 2px solid #a855f7; color: #a855f7; text-decoration: none; font-weight: bold; 
+            transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn:hover { background: #a855f7; color: #fff; box-shadow: 0 0 25px rgba(168, 85, 247, 0.6); }
+        
+        .api-ticker { 
+            position: absolute; bottom: 0; width: 100%; padding: 15px; background: rgba(2, 6, 23, 0.8);
+            border-top: 1px solid #312e81; font-family: 'Consolas', monospace; font-size: 1rem; color: #10b981;
+        }
+    </style>
 </head>
-
 <body>
-
-<nav class="navbar">
-
-    <div class="logo">
-        TraceScope
-    </div>
-
-    <ul>
-
-        <li>Home</li>
-
-        <li>Features</li>
-
-        <li>About</li>
-
-        <li>Contact</li>
-
-    </ul>
-
-</nav>
-
-<section class="hero">
-
-    <h1>
-        AI Powered Digital Forensics Investigation Platform
-    </h1>
-
-    <p>
-        Upload Digital Evidence • Correlate Artifacts • Generate AI Reports
-    </p>
-
-    <button>
-        Start Investigation
-    </button>
-
-</section>
-
+    <h1>TraceScope</h1>
+    <p>Advanced Digital Forensics & Malware Triage</p>
+    <a href="/cases" class="btn">Initialize Command Center</a>
+    
+    <div class="api-ticker">> API_GATEWAY: SECURE | THREAT_INTEL: ONLINE | ENGINE_V4.2: ACTIVE</div>
 </body>
-
 </html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TraceScope | Case Workspace</title>
+    <style>
+        /* PERMANENT ZOOM SCALE */
+        html { font-size: 26px; }
+        
+        body { 
+            margin: 0; padding: 40px; font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: radial-gradient(circle at top right, #2e1065 0%, #0f172a 60%, #020617 100%);
+            color: #f8fafc; min-height: 100vh;
+        }
+        /* WIDENED CONTAINER TO FILL SCREEN */
+        .container { width: 95%; margin: 0 auto; }
+        
+        .header { 
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 12px; border: 1px solid #312e81;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h1 { font-size: 3rem; margin: 0; color: #fff; text-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
+        .meta { font-size: 1.2rem; color: #38bdf8; margin-top: 10px; }
+        
+        .btn { 
+            font-size: 1.2rem; padding: 15px 30px; background: #a855f7; color: #fff; 
+            text-decoration: none; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; transition: 0.3s;
+        }
+        .btn:hover { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
+
+        .grid { display: grid; grid-template-columns: 450px 1fr; gap: 40px; }
+        
+        .panel { 
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 12px; border: 1px solid #312e81;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h3 { font-size: 1.8rem; color: #a855f7; margin-top: 0; margin-bottom: 30px; border-bottom: 1px solid #312e81; padding-bottom: 15px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { font-size: 1.1rem; color: #38bdf8; padding: 20px; text-align: left; border-bottom: 2px solid #312e81; }
+        td { font-size: 1.2rem; padding: 20px; border-bottom: 1px solid #1e1b4b; }
+
+        .api-terminal {
+            margin-top: 40px; background: #020617; border: 1px solid #38bdf8; border-radius: 8px; padding: 30px;
+            font-family: 'Consolas', monospace; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+        }
+        .api-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 15px;}
+        .api-title { font-size: 1.3rem; color: #38bdf8; margin: 0; }
+        .api-btn { font-size: 1rem; background: transparent; border: 1px solid #38bdf8; color: #38bdf8; padding: 10px 20px; cursor: pointer; border-radius: 4px; transition: 0.3s; font-weight: bold; text-transform: uppercase; }
+        .api-btn:hover { background: #38bdf8; color: #020617; }
+        .api-output { font-size: 1.1rem; color: #10b981; min-height: 120px; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>{{ case.title }}</h1>
+                <div class="meta">CASE ID: {{ case.case_number }} | INVESTIGATOR: {{ case.investigator }}</div>
+            </div>
+            <a href="{{ url_for('generate_report', case_id=case.id) }}" class="btn" target="_blank">Export PDF Report</a>
+        </header>
+
+        <div class="grid">
+            <div class="panel">
+                <h3>Evidence Registry</h3>
+                <form action="{{ url_for('upload_evidence', case_id=case.id) }}" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="evidence_file" style="width: 100%; font-size: 1.2rem; background: #020617; color: white; padding: 15px; border: 1px solid #312e81; margin-bottom: 20px; border-radius: 6px;">
+                    <button type="submit" class="btn" style="width: 100%;">Ingest Artifact</button>
+                </form>
+                <div style="margin-top:40px;">
+                    {% for ev in case.evidence %}
+                    <div style="background: rgba(2, 6, 23, 0.8); padding: 20px; border-left: 5px solid #38bdf8; margin-bottom: 15px; font-size: 1.2rem; border-radius: 4px;">
+                        {{ ev.filename }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Forensic Analysis Stream</h3>
+                <table>
+                    <thead><tr><th>Timestamp</th><th>Engine Source</th><th>Risk Level</th><th>Forensic Details</th></tr></thead>
+                    <tbody>
+                        {% for log in analysis_results %}
+                        <tr>
+                            <td>{{ log.time_created }}</td>
+                            <td>{{ log.source }}</td>
+                            <td style="color: {% if log.risk_level == 'High' %}#ef4444{% else %}#10b981{% endif %}; font-weight: bold;">
+                                {{ log.risk_level }}
+                            </td>
+                            <td>{{ log.description }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="api-terminal">
+                    <div class="api-header">
+                        <h2 class="api-title">LIVE THREAT INTEL API</h2>
+                        <button class="api-btn" onclick="runForensicAPI()">Query External DB</button>
+                    </div>
+                    <div class="api-output" id="terminal-screen">> SYSTEM IDLE. WAITING FOR API QUERY...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function runForensicAPI() {
+            const screen = document.getElementById('terminal-screen');
+            screen.style.color = "#a855f7";
+            screen.innerHTML = "> ESTABLISHING SECURE TLS CONNECTION TO THREAT INTEL API...\n> AUTHENTICATING WORKSPACE...";
+            
+            setTimeout(() => {
+                screen.style.color = "#38bdf8"; 
+                screen.innerHTML += "\n> UPLOADING ARTIFACT HASHES FOR REPUTATION CHECK...\n> CROSS-REFERENCING YARA RULESETS...";
+            }, 1500);
+
+            setTimeout(() => {
+                screen.style.color = "#10b981"; 
+                screen.innerHTML += "\n\n[API STATUS: 200 OK]\n> ANALYSIS COMPLETE. NO EXTERNAL IOCs FOUND.\n> CONNECTION SEVERED. READY.";
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

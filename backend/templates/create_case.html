@@ -1,50 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Create Investigation Case</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
-
+    <title>TraceScope - Create Case</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-
 <body>
+    <nav class="navbar">
+        <div class="logo"><i class="fa-solid fa-shield-halved"></i> TraceScope</div>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/cases">Cases</a></li>
+        </ul>
+    </nav>
 
-<div class="case-container">
-
-    <h1>Create Investigation Case</h1>
-
-    <form>
-
-        <label>Case Name</label>
-        <input type="text" placeholder="Employee Data Theft">
-
-        <label>Investigator Name</label>
-        <input type="text" placeholder="Kaushiki">
-
-        <label>Priority</label>
-
-        <select>
-
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-            <option>Critical</option>
-
-        </select>
-
-        <button>Create Case</button>
-
-    </form>
-
-</div>
-
+    <div class="dashboard-wrapper">
+        <a href="/cases" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Cases</a>
+        
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+            <h2><i class="fa-solid fa-folder-plus"></i> Open New Investigation</h2>
+            
+            <form action="/create-case" method="POST" class="upload-box" style="margin-top: 20px;">
+                <input type="text" name="case_number" placeholder="Case Number (e.g. TRC-2026-001)" required 
+                       style="padding: 12px; border-radius: 6px; background: #1f2937; color: white; border: 1px solid #374151; font-family: inherit;">
+                
+                <input type="text" name="title" placeholder="Case Title" required 
+                       style="padding: 12px; border-radius: 6px; background: #1f2937; color: white; border: 1px solid #374151; font-family: inherit;">
+                
+                <input type="text" name="investigator" placeholder="Investigator Name" required 
+                       style="padding: 12px; border-radius: 6px; background: #1f2937; color: white; border: 1px solid #374151; font-family: inherit;">
+                
+                <textarea name="description" rows="4" placeholder="Investigation Objective / Description..." 
+                          style="padding: 12px; border-radius: 6px; background: #1f2937; color: white; border: 1px solid #374151; font-family: inherit; resize: vertical;"></textarea>
+                
+                <button type="submit" class="btn-primary" style="margin-top: 10px;">Initialize Case Workspace</button>
+            </form>
+        </div>
+    </div>
 </body>
-
 </html>
