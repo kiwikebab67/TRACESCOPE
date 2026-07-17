@@ -39,15 +39,26 @@ def create_case():
         )
         db.session.add(new_case)
         db.session.commit()
-        return redirect(url_for("home"))
+        return redirect(url_for("view_cases"))
     return render_template("create_case.html")
 
-@app.route("/cases")
+# 👇 FIXED: Added methods=["GET", "POST"] and the logic to save a case from the dashboard!
+@app.route("/cases", methods=["GET", "POST"])
 def view_cases():
+    if request.method == "POST":
+        new_case = Case(
+            case_number=request.form.get("case_number"),
+            title=request.form.get("title"),
+            investigator=request.form.get("investigator"),
+            description=request.form.get("description")
+        )
+        db.session.add(new_case)
+        db.session.commit()
+        return redirect(url_for("view_cases"))
+        
     cases = Case.query.order_by(Case.created_at.desc()).all()
     return render_template("cases.html", cases=cases)
 
-# 👇 NEWLY ADDED ROUTE TO FIX THE ERROR
 @app.route("/case/<int:case_id>")
 def case_details(case_id):
     case = Case.query.get_or_404(case_id)
@@ -64,6 +75,7 @@ def case_details(case_id):
         case=case,
         analysis_results=analysis_results
     )
+
 @app.route("/case/<int:case_id>/report")
 def generate_report(case_id):
     case = Case.query.get_or_404(case_id)
@@ -151,4 +163,5 @@ def upload_evidence(case_id):
         return redirect(url_for('case_details', case_id=case.id))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
