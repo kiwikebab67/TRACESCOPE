@@ -2,65 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FINAL REPORT | {{ case.case_number }}</title>
+    <title>TraceScope | Forensic Report</title>
     <style>
+        /* SLIGHTLY SMALLER BASE FONT FOR REPORTS (14px instead of 16px) */
+        html { font-size: 14px; }
+        
         body { 
-            background-color: #030712; 
-            color: #e5e7eb; 
-            font-family: 'Segoe UI', sans-serif; 
-            padding: 60px; 
-            line-height: 1.8;
+            margin: 0; padding: 40px; font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0b112c; color: #f8fafc; 
         }
-        .report-card { 
-            background: #111827; 
-            padding: 50px; 
-            border-radius: 20px; 
-            border: 2px solid #4f46e5;
-            box-shadow: 0 0 50px rgba(79, 70, 229, 0.2);
+        
+        /* A slightly narrower container looks better for readable reports */
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { 
+            background: rgba(11, 17, 44, 0.8);
+            padding: 30px; border-radius: 8px; border: 1px solid #2e355c;
+            margin-bottom: 30px; text-align: center;
+            border-top: 5px solid #a855f7;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        h1 { font-size: 3.5rem; color: #818cf8; margin-top: 0; }
-        h2 { font-size: 2.2rem; color: #6ee7b7; border-bottom: 2px solid #374151; padding-bottom: 10px; }
-        p, td, th { font-size: 1.4rem; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #1f2937; color: #818cf8; padding: 20px; text-align: left; }
-        td { padding: 20px; border-bottom: 1px solid #374151; }
-        .risk-high { color: #f87171; font-weight: bold; font-size: 1.6rem; text-transform: uppercase; }
-        .risk-low { color: #4ade80; font-weight: bold; font-size: 1.6rem; }
+        h1 { font-size: 2.2rem; margin: 0; color: #fff; text-transform: uppercase; letter-spacing: 2px;}
+        .meta { font-size: 1.1rem; color: #38bdf8; margin-top: 10px; font-weight: bold; }
+        .confidential { margin-top: 10px; color: #ef4444; font-size: 0.9rem; letter-spacing: 1px; font-weight: bold; }
+        
+        .section { 
+            background: rgba(11, 17, 44, 0.5); backdrop-filter: blur(10px);
+            padding: 30px; border-radius: 8px; border: 1px solid #2e355c; margin-bottom: 30px;
+        }
+        h3 { font-size: 1.4rem; color: #a855f7; margin-top: 0; border-bottom: 1px solid #2e355c; padding-bottom: 15px; }
+        
+        p { font-size: 1.1rem; line-height: 1.6; color: #cbd5e1; margin: 0; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { font-size: 1.05rem; color: #38bdf8; padding: 15px; text-align: left; border-bottom: 2px solid #2e355c; }
+        td { font-size: 1rem; padding: 15px; border-bottom: 1px solid #1e1040; }
+        
+        .high-risk { color: #ef4444; font-weight: bold; }
+        .low-risk { color: #10b981; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="report-card">
-        <h1>FORENSIC INVESTIGATION REPORT</h1>
-        <p style="font-size: 1.8rem; color: #9ca3af;">
-            Case ID: <strong>{{ case.case_number }}</strong> | 
-            Investigator: <strong>{{ case.investigator }}</strong>
-        </p>
+    <div class="container">
+        <!-- OFFICIAL HEADER -->
+        <div class="header">
+            <h1>TraceScope Final Intelligence Report</h1>
+            <div class="meta">CASE ID: {{ case.case_number }} | LEAD INVESTIGATOR: {{ case.investigator }}</div>
+            <div class="confidential">[ CONFIDENTIAL - DO NOT DISTRIBUTE ]</div>
+        </div>
 
-        <h2>CASE SUMMARY</h2>
-        <p>{{ case.description }}</p>
+        <!-- CASE OBJECTIVE -->
+        <div class="section">
+            <h3>Case Objective & Summary</h3>
+            <p>{{ case.description }}</p>
+        </div>
 
-        <h2>EVIDENCE REGISTRY</h2>
-        <table>
-            <tr><th>File Name</th><th>SHA-256 Hash</th></tr>
-            {% for ev in case.evidence %}
-            <tr><td>{{ ev.filename }}</td><td>{{ ev.hash_sha256 }}</td></tr>
-            {% endfor %}
-        </table>
-
-        <h2>ANALYSIS FINDINGS</h2>
-        <table>
-            <tr><th>Timestamp</th><th>Source</th><th>Description</th><th>Risk</th></tr>
-            {% for log in logs %}
-            <tr>
-                <td>{{ log.time_created }}</td>
-                <td>{{ log.source }}</td>
-                <td>{{ log.description }}</td>
-                <td class="{% if log.risk_level == 'High' %}risk-high{% else %}risk-low{% endif %}">
-                    {{ log.risk_level }}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+        <!-- ANALYSIS LOGS -->
+        <div class="section">
+            <h3>Automated Analysis & Threat Intel Stream</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Engine Source</th>
+                        <th>Risk Level</th>
+                        <th>Forensic Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if logs %}
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.time_created }}</td>
+                            <td>{{ log.source }}</td>
+                            <td class="{% if log.risk_level == 'High' %}high-risk{% else %}low-risk{% endif %}">
+                                {{ log.risk_level }}
+                            </td>
+                            <td>{{ log.description }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 40px; color: #94a3b8; font-style: italic;">
+                                > NO FORENSIC ARTIFACTS PROCESSED FOR THIS CASE YET.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>
