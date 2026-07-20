@@ -58,7 +58,7 @@ const ThreatMap = () => {
   }, []);
 
   return (
-    <div className="w-full h-[500px] relative overflow-hidden bg-[var(--ts-panel)] rounded-xl border border-[var(--ts-border)] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]">
+    <div className="w-full h-[500px] relative overflow-hidden bg-[#020617] rounded-xl border border-[var(--ts-border)] shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
       
       {/* Title & Overlay UI */}
       <div className="absolute top-5 left-5 z-20 pointer-events-none">
