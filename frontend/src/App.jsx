@@ -7,6 +7,7 @@ import CaseDetails from './pages/CaseDetails';
 import AIAssistant from './pages/AIAssistant';
 import Evidence from './pages/Evidence';
 import Malware from './pages/Malware';
+import Connect from './pages/Connect';
 import PlaceholderPage from './pages/PlaceholderPage';
 import Login from './pages/Login';
 
@@ -33,6 +34,7 @@ function App() {
         {/* Modules to build next */}
         <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
         <Route path="/malware" element={<ProtectedRoute><Malware /></ProtectedRoute>} />
+        <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
         
         {/* Scaffolded Routes (Under Construction) */}
         <Route path="/timeline" element={<ProtectedRoute><PlaceholderPage moduleName="Event Timeline" /></ProtectedRoute>} />
