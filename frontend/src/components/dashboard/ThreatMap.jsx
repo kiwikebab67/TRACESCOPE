@@ -6,6 +6,7 @@ const ThreatMap = () => {
   const globeRef = useRef();
   const [arcsData, setArcsData] = useState([]);
   const [ringsData, setRingsData] = useState([]);
+  const [htmlData, setHtmlData] = useState([]);
 
   // Generate simulated realistic 3D attack arcs targeting a central server
   useEffect(() => {
@@ -46,8 +47,22 @@ const ThreatMap = () => {
       color: '#00f0ff' // Cyan
     });
 
+    const markers = origins.map(origin => ({
+      lat: origin.lat,
+      lng: origin.lng,
+      name: origin.name,
+      type: 'Source'
+    }));
+    markers.push({
+      lat: targetLat,
+      lng: targetLng,
+      name: 'TRACESCOPE-HQ',
+      type: 'Target'
+    });
+
     setArcsData(arcs);
     setRingsData(rings);
+    setHtmlData(markers);
 
     // Auto-rotate the globe slowly
     if (globeRef.current) {
@@ -116,6 +131,23 @@ const ThreatMap = () => {
         ringMaxRadius={4}
         ringPropagationSpeed={2}
         ringRepeatPeriod={1000}
+        
+        // Atmosphere Glow
+        atmosphereColor="#00f0ff"
+        atmosphereAltitude={0.2}
+        
+        // Interactive HUD Markers
+        htmlElementsData={htmlData}
+        htmlElement={d => {
+          const el = document.createElement('div');
+          el.innerHTML = `
+            <div style="color: ${d.type === 'Target' ? '#00f0ff' : '#ff003c'}; font-family: monospace; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; border: 1px solid ${d.type === 'Target' ? '#00f0ff' : '#ff003c'}; white-space: nowrap; backdrop-filter: blur(4px); box-shadow: 0 0 10px ${d.type === 'Target' ? 'rgba(0,240,255,0.3)' : 'rgba(255,0,60,0.3)'}; cursor: crosshair;">
+              ${d.type === 'Source' ? '⚠ ORIGIN:' : '⌖'} ${d.name}
+            </div>
+          `;
+          return el;
+        }}
+        htmlTransitionDuration={250}
       />
     </div>
   );
