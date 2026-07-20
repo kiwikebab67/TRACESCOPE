@@ -1,107 +1,255 @@
-from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file
-from services.artifact_parser import parse_evtx_log 
+from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk 
 import os
 import hashlib
 import json 
+import requests 
+from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
-from flask import Flask, render_template, request, redirect, url_for
+
+load_dotenv() # Load environment variables from .env file
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from config import Config
 from models.database import db
 from models.case import Case
 from models.evidence import Evidence 
 from models.evidence import ForensicLog 
 
-app = Flask(__name__)
+# Configure Flask to serve the React SPA from the "dist" directory
+app = Flask(__name__, static_folder='dist', static_url_path='/')
+CORS(app) # Enable CORS for Vite frontend development
 app.config.from_object(Config)
 
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Ensure upload directory matches configuration
+UPLOAD_FOLDER = app.config.get('UPLOAD_FOLDER', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db.init_app(app)
 
-# 🌟 FIXED: Removed db.drop_all() so cases and parsed logs persist forever
 with app.app_context():
     db.create_all()   
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+# Serve React App
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
-@app.route("/create-case", methods=["GET", "POST"])
-def create_case():
+@app.errorhandler(404)
+def serve_react(e):
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Not Found"}), 404
+    return app.send_static_file('index.html')
+
+from datetime import datetime, timedelta
+
+@app.route("/api/dashboard")
+def dashboard_stats():
+    cases_count = Case.query.count()
+    evidence_count = Evidence.query.count()
+    high_risk_logs = ForensicLog.query.filter_by(risk_level="High").count()
+    medium_risk_logs = ForensicLog.query.filter_by(risk_level="Medium").count()
+    
+    recent_cases = Case.query.order_by(Case.created_at.desc()).limit(5).all()
+    
+    # Calculate average threat score for metrics
+    avg_score = 0
+    if evidence_count > 0:
+        total_high = ForensicLog.query.filter_by(risk_level="High").count()
+        total_med = ForensicLog.query.filter_by(risk_level="Medium").count()
+        avg_score = min(100, int(((total_high * 25) + (total_med * 10)) / max(1, evidence_count)))
+        
+    # Calculate Timeline Data (Last 24 hours)
+    now = datetime.utcnow()
+    yesterday = now - timedelta(days=1)
+    logs_last_24h = ForensicLog.query.filter(ForensicLog.created_at >= yesterday).all()
+    
+    timeline_data = []
+    for i in range(23, -1, -1):
+        dt = now - timedelta(hours=i)
+        time_str = f"{dt.hour:02d}:00"
+        timeline_data.append({"time": time_str, "events": 0})
+        
+    for log in logs_last_24h:
+        time_str = f"{log.created_at.hour:02d}:00"
+        for item in timeline_data:
+            if item["time"] == time_str:
+                item["events"] += 1
+                break
+
+    # Calculate Evidence Composition
+    all_evidence = Evidence.query.all()
+    comp = {'System Logs': 0, 'Registry': 0, 'Memory': 0, 'Network': 0, 'Malware': 0, 'Other': 0}
+    for ev in all_evidence:
+        ext = os.path.splitext(ev.filename)[1].lower() if '.' in ev.filename else ''
+        if ext in ['.evtx', '.txt', '.log']: comp['System Logs'] += 1
+        elif ext in ['.dat', '.reg']: comp['Registry'] += 1
+        elif ext in ['.raw', '.mem', '.dmp']: comp['Memory'] += 1
+        elif ext in ['.pcap', '.cap']: comp['Network'] += 1
+        elif ext in ['.exe', '.dll', '.bin', '.sys']: comp['Malware'] += 1
+        else: comp['Other'] += 1
+
+    evidence_data = []
+    colors = {'System Logs': '#3b82f6', 'Registry': '#8b5cf6', 'Memory': '#ec4899', 'Network': '#f97316', 'Malware': '#ef4444', 'Other': '#9ca3af'}
+    for k, v in comp.items():
+        if v > 0:
+            evidence_data.append({"name": k, "value": v, "color": colors[k]})
+            
+    # Calculate Recent Activities
+    latest_logs = ForensicLog.query.order_by(ForensicLog.created_at.desc()).limit(5).all()
+    recent_activities = []
+    for log in latest_logs:
+        recent_activities.append({
+            "id": log.id,
+            "time": log.created_at.strftime("%I:%M %p"),
+            "investigator": "System Auto",
+            "action": f"Analysis: {log.tool_source}",
+            "target": log.evidence.filename if log.evidence else "Unknown",
+            "status": log.risk_level
+        })
+
+    return jsonify({
+        "cases_count": cases_count,
+        "evidence_count": evidence_count,
+        "high_risk_logs": high_risk_logs,
+        "medium_risk_logs": medium_risk_logs,
+        "avg_score": avg_score,
+        "timeline_data": timeline_data,
+        "evidence_data": evidence_data,
+        "recent_activities": recent_activities,
+        "recent_cases": [
+            {
+                "id": c.id,
+                "case_number": c.case_number,
+                "title": c.title,
+                "investigator": c.investigator,
+                "created_at": c.created_at.isoformat()
+            } for c in recent_cases
+        ]
+    })
+
+@app.route("/api/cases", methods=["GET", "POST"])
+def manage_cases():
     if request.method == "POST":
+        data = request.json
         new_case = Case(
-            case_number=request.form["case_number"],
-            title=request.form["title"],
-            investigator=request.form["investigator"],
-            description=request.form["description"]
+            case_number=data.get("case_number"),
+            title=data.get("title"),
+            investigator=data.get("investigator"),
+            description=data.get("description")
         )
         db.session.add(new_case)
         db.session.commit()
-        return redirect(url_for("view_cases"))
-    return render_template("create_case.html")
-
-# 👇 FIXED: Added methods=["GET", "POST"] and the logic to save a case from the dashboard!
-@app.route("/cases", methods=["GET", "POST"])
-def view_cases():
-    if request.method == "POST":
-        new_case = Case(
-            case_number=request.form.get("case_number"),
-            title=request.form.get("title"),
-            investigator=request.form.get("investigator"),
-            description=request.form.get("description")
-        )
-        db.session.add(new_case)
-        db.session.commit()
-        return redirect(url_for("view_cases"))
+        return jsonify({"message": "Case created successfully", "case_id": new_case.id}), 201
         
     cases = Case.query.order_by(Case.created_at.desc()).all()
-    return render_template("cases.html", cases=cases)
+    return jsonify([{
+        "id": c.id,
+        "case_number": c.case_number,
+        "title": c.title,
+        "investigator": c.investigator,
+        "description": c.description,
+        "created_at": c.created_at.isoformat(),
+        "evidence_count": len(c.evidence) if c.evidence else 0
+    } for c in cases])
 
-@app.route("/case/<int:case_id>")
+@app.route("/api/cases/<int:case_id>")
 def case_details(case_id):
     case = Case.query.get_or_404(case_id)
     
-    # Fetch all automated analysis logs linked to this case's evidence
     analysis_results = []
-    if hasattr(case, 'evidence') and case.evidence:
+    if case.evidence:
         for ev in case.evidence:
             logs = ForensicLog.query.filter_by(evidence_id=ev.id).all()
-            analysis_results.extend(logs)
+            analysis_results.extend([{
+                "id": log.id,
+                "time_created": log.time_created,
+                "event_id": log.event_id,
+                "source": log.source,
+                "description": log.description,
+                "risk_level": log.risk_level,
+                "tool_source": log.tool_source
+            } for log in logs])
             
-    return render_template(
-        "case_details.html",
-        case=case,
-        analysis_results=analysis_results
-    )
+    return jsonify({
+        "case": {
+            "id": case.id,
+            "case_number": case.case_number,
+            "title": case.title,
+            "investigator": case.investigator,
+            "description": case.description,
+            "created_at": case.created_at.isoformat()
+        },
+        "evidence": [{
+            "id": ev.id,
+            "filename": ev.filename,
+            "hash_md5": ev.hash_md5,
+            "hash_sha256": ev.hash_sha256
+        } for ev in case.evidence] if case.evidence else [],
+        "analysis_results": analysis_results
+    })
 
-@app.route("/case/<int:case_id>/report")
-def generate_report(case_id):
-    case = Case.query.get_or_404(case_id)
-    # Collect logs for the report
-    logs = []
-    for ev in case.evidence:
-        logs.extend(ForensicLog.query.filter_by(evidence_id=ev.id).all())
-    return render_template("report.html", case=case, logs=logs)
-
-@app.route("/case/<int:case_id>/upload", methods=["POST"])
-def upload_evidence(case_id):
+@app.route("/api/threat-intel/<int:case_id>")
+def threat_intel(case_id):
     case = Case.query.get_or_404(case_id)
     
+    if not case.evidence:
+        return jsonify({"status": "error", "message": "No evidence uploaded yet to scan."}), 404
+        
+    latest_evidence = case.evidence[-1]
+    file_hash = latest_evidence.hash_sha256
+    
+    vt_api_key = os.environ.get('VT_API_KEY') or app.config.get('VT_API_KEY')
+    if not vt_api_key:
+        return jsonify({"status": "error", "message": "VT_API_KEY environment variable is not configured on the server. Live VirusTotal lookup is disabled."}), 500
+        
+    url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
+    headers = {
+        "accept": "application/json",
+        "x-apikey": vt_api_key
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            stats = data['data']['attributes']['last_analysis_stats']
+            return jsonify({
+                "status": "success",
+                "hash": file_hash,
+                "malicious": stats.get('malicious', 0),
+                "suspicious": stats.get('suspicious', 0),
+                "undetected": stats.get('undetected', 0)
+            })
+        elif response.status_code == 404:
+            return jsonify({
+                "status": "success",
+                "hash": file_hash,
+                "message": "File hash not found in VirusTotal database (0 detections)."
+            })
+        else:
+            return jsonify({"status": "error", "message": f"VirusTotal API returned status {response.status_code}"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/api/cases/<int:case_id>/upload", methods=["POST"])
+def upload_evidence(case_id):
+    case = Case.query.get(case_id)
+    if not case:
+        return jsonify({"error": f"Case ID {case_id} not found"}), 404
+        
     if 'evidence_file' not in request.files:
-        return "No file part in the request", 400
+        return jsonify({"error": "No file part in the request"}), 400
         
     file = request.files['evidence_file']
     if file.filename == '':
-        return "No file selected", 400
+        return jsonify({"error": "No file selected"}), 400
         
     if file:
         filename = secure_filename(file.filename)
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(save_path)
         
-        # Calculate Hashes (Integrity & Chain of Custody Foundation)
         sha256_hash = hashlib.sha256()
         with open(save_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
@@ -119,9 +267,7 @@ def upload_evidence(case_id):
         db.session.add(new_evidence)
         db.session.commit() 
         
-        # --- LOGIC BLOCK: FILE PROCESSING ---
-        
-        # 1. Handle Log Files
+        # Synchronous processing for MVP (to be moved to Celery later)
         if filename.lower().endswith(('.evtx', '.txt')):
             parsed_events = parse_evtx_log(save_path)
             for event in parsed_events:
@@ -138,29 +284,80 @@ def upload_evidence(case_id):
                     source=str(event.get('source', '')),
                     description=description_intel,
                     risk_level=risk_lvl,
+                    tool_source="logs",
                     evidence_id=new_evidence.id
                 )
                 db.session.add(db_log)
             db.session.commit()
             
-        # 2. Handle Binary/Malware Files
         elif filename.lower().endswith(('.exe', '.dll', '.bin', '.sys')):
             malware_results = analyze_malware_file(save_path, filename)
-            
             risk_level = "High" if malware_results['is_suspicious'] else "Low"
             
+            desc_lines = []
+            if malware_results['yara_matches']:
+                for match in malware_results['yara_matches']:
+                    desc_lines.append(f"[YARA RULE] {match['rule']}: {match['meta']}")
+            desc_lines.extend(malware_results['notes'])
+            
             db_log = ForensicLog(
-                time_created="Artifact Extraction Time",
+                time_created="Static Scan Timestamp",
                 event_id=999,
-                source=f"Static Analysis Engine: {filename}",
-                description=f"Analysis: {', '.join(malware_results['notes']) if malware_results['notes'] else 'No high-risk indicators.'}",
+                source=f"YARA & Static Analyzer: {filename}",
+                description=" | ".join(desc_lines),
                 risk_level=risk_level,
+                tool_source="yara",
                 evidence_id=new_evidence.id
             )
             db.session.add(db_log)
             db.session.commit()
+
+        elif filename.lower().endswith(('.pcap', '.cap')):
+            packet_events = parse_pcap_capture(save_path)
+            for pkt in packet_events:
+                db_log = ForensicLog(
+                    time_created=pkt['time_created'],
+                    event_id=pkt['event_id'],
+                    source=pkt['source'],
+                    description=pkt['description'],
+                    risk_level=pkt['risk_level'],
+                    tool_source="wireshark",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
+
+        elif filename.lower().endswith(('.raw', '.dmp', '.mem')):
+            vol_events = analyze_memory_dump(save_path, filename)
+            for vol in vol_events:
+                db_log = ForensicLog(
+                    time_created=vol['time_created'],
+                    event_id=vol['event_id'],
+                    source=vol['source'],
+                    description=vol['description'],
+                    risk_level=vol['risk_level'],
+                    tool_source="volatility",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
+
+        elif filename.lower().endswith(('.img', '.ad1')):
+            disk_events = parse_autopsy_disk(save_path)
+            for disk in disk_events:
+                db_log = ForensicLog(
+                    time_created=disk['time_created'],
+                    event_id=disk['event_id'],
+                    source=disk['source'],
+                    description=disk['description'],
+                    risk_level=disk['risk_level'],
+                    tool_source="autopsy",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
             
-        return redirect(url_for('case_details', case_id=case.id))
+        return jsonify({"message": "File uploaded and processed", "evidence_id": new_evidence.id})
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
