@@ -357,7 +357,57 @@ def upload_evidence(case_id):
                 db.session.add(db_log)
             db.session.commit()
             
-        return jsonify({"message": "File uploaded and processed", "evidence_id": new_evidence.id})
+@app.route("/api/ai/chat", methods=["POST"])
+def ai_chat():
+    data = request.json
+    case_id = data.get('case_id')
+    message = data.get('message', '').lower()
+    
+    if not case_id:
+        return jsonify({"response": "Please select an active case context first so I can analyze the relevant artifacts."})
+        
+    case = Case.query.get(case_id)
+    if not case:
+        return jsonify({"response": f"I cannot find Case ID {case_id} in the system."})
+        
+    if not case.evidence:
+        return jsonify({"response": f"Case **{case.case_number}** has no ingested artifacts yet. Please upload memory dumps, packet captures, or executables so I can begin forensic correlation."})
+        
+    # Heuristic AI response generation based on actual logs
+    high_risks = []
+    med_risks = []
+    
+    for ev in case.evidence:
+        for log in ev.logs:
+            if log.risk_level == 'High':
+                high_risks.append(f"- **{ev.filename}**: {log.description} ({log.tool_source})")
+            elif log.risk_level == 'Medium':
+                med_risks.append(f"- **{ev.filename}**: {log.description} ({log.tool_source})")
+                
+    if 'summar' in message or 'report' in message or 'status' in message or 'risk' in message:
+        res = f"### TraceScope AI Analysis: {case.case_number}\n\n"
+        res += f"I have analyzed **{len(case.evidence)}** artifacts in this case.\n\n"
+        
+        if high_risks:
+            res += "#### 🚨 Critical Findings\n"
+            res += "\n".join(high_risks[:3]) # Limit to top 3 for brevity
+            res += "\n\n"
+        if med_risks:
+            res += "#### ⚠️ Suspicious Indicators\n"
+            res += "\n".join(med_risks[:3])
+            res += "\n\n"
+            
+        if not high_risks and not med_risks:
+            res += "✅ No significant malicious signatures were detected across the ingested evidence."
+        else:
+            res += "**Recommended Action**: Immediately isolate any endpoints associated with the critical findings and review the exact YARA signature matches in the Triage dashboard."
+            
+        return jsonify({"response": res})
+        
+    # Default fallback response
+    return jsonify({
+        "response": f"I am currently analyzing the context for **{case.case_number}**. I detected {len(high_risks)} high-risk anomalies in the evidence chain. Ask me to 'summarize the risks' for a detailed breakdown."
+    })
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
