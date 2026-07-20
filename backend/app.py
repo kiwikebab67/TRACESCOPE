@@ -281,38 +281,46 @@ def threat_intel(case_id):
 def export_case_report(case_id):
     case = Case.query.get_or_404(case_id)
     
-    # Generate HTML content dynamically
+    # Generate Professional Light-Theme Cyberpunk HTML Report
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>TraceScope Case Report - {case.case_number}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
         <style>
-            body {{ font-family: 'Courier New', Courier, monospace; background-color: #020617; color: #f8fafc; margin: 40px; line-height: 1.6; }}
-            h1 {{ color: #00f0ff; text-transform: uppercase; border-bottom: 2px solid #ff003c; padding-bottom: 10px; }}
-            h2 {{ color: #ff00ff; text-transform: uppercase; margin-top: 30px; }}
-            .header-banner {{ background-color: #ff003c; color: white; text-align: center; font-weight: bold; padding: 10px; font-size: 12px; letter-spacing: 2px; margin-bottom: 30px; }}
-            .card {{ background-color: #0f172a; border: 1px solid #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
-            .label {{ color: #94a3b8; font-weight: bold; width: 150px; display: inline-block; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
-            th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #1e293b; }}
-            th {{ color: #00f0ff; background-color: #000000; }}
-            .high-risk {{ color: #ef4444; font-weight: bold; }}
-            .footer {{ margin-top: 50px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #1e293b; padding-top: 20px; }}
+            body {{ font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; margin: 40px auto; max-width: 900px; line-height: 1.6; }}
+            h1 {{ color: #0f172a; font-weight: 800; font-size: 28px; border-bottom: 3px solid #0ea5e9; padding-bottom: 10px; margin-bottom: 5px; }}
+            .subtitle {{ color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px; margin-bottom: 30px; display: block; }}
+            h2 {{ color: #334155; font-weight: 600; font-size: 18px; margin-top: 35px; text-transform: uppercase; letter-spacing: 1px; border-left: 4px solid #8b5cf6; padding-left: 10px; }}
+            .header-banner {{ background: linear-gradient(90deg, #ff003c 0%, #8b5cf6 100%); color: white; text-align: center; font-weight: bold; padding: 12px; font-size: 11px; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; border-radius: 4px; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2); }}
+            .card {{ background-color: #ffffff; border: 1px solid #e2e8f0; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }}
+            .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }}
+            .label {{ color: #64748b; font-size: 12px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }}
+            .value {{ font-size: 14px; font-weight: 600; color: #0f172a; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }}
+            th, td {{ padding: 14px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
+            th {{ color: #475569; background-color: #f1f5f9; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }}
+            .mono {{ font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #0ea5e9; }}
+            .high-risk {{ color: #ef4444; font-weight: bold; background: #fee2e2; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; }}
+            .footer {{ margin-top: 60px; text-align: center; color: #94a3b8; font-size: 11px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-family: 'JetBrains Mono', monospace; }}
         </style>
     </head>
     <body>
         <div class="header-banner">CLASSIFICATION: TOP SECRET // TRACESCOPE FOR OFFICIAL USE ONLY</div>
         
         <h1>Forensic Analysis Report</h1>
+        <span class="subtitle">AUTOMATED THREAT INTELLIGENCE SUMMARY</span>
         
         <div class="card">
             <h2>Case Details</h2>
-            <div><span class="label">Case Number:</span> {case.case_number}</div>
-            <div><span class="label">Investigator:</span> {case.investigator}</div>
-            <div><span class="label">Title:</span> {case.title}</div>
-            <div><span class="label">Date Created:</span> {case.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
-            <div><span class="label">Description:</span> {case.description}</div>
+            <div class="grid">
+                <div><span class="label">Case Number</span><span class="value mono">{case.case_number}</span></div>
+                <div><span class="label">Investigator</span><span class="value">{case.investigator}</span></div>
+                <div><span class="label">Date Created</span><span class="value">{case.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}</span></div>
+                <div><span class="label">Title</span><span class="value">{case.title}</span></div>
+            </div>
+            <div style="margin-top: 20px;"><span class="label">Description</span><span class="value" style="font-weight: 400;">{case.description}</span></div>
         </div>
 
         <div class="card">
@@ -322,7 +330,7 @@ def export_case_report(case_id):
     """
     
     for ev in case.evidence:
-        html += f"<tr><td>{ev.filename}</td><td style='font-size: 11px; color: #ff00ff;'>{ev.hash_sha256}</td><td>{case.created_at.strftime('%Y-%m-%d')}</td></tr>"
+        html += f"<tr><td style='font-weight: 600;'>{ev.filename}</td><td class='mono' style='color: #8b5cf6;'>{ev.hash_sha256}</td><td>{case.created_at.strftime('%Y-%m-%d')}</td></tr>"
         
     html += """
             </table>
@@ -337,7 +345,7 @@ def export_case_report(case_id):
     for ev in case.evidence:
         for log in ev.logs:
             risk_class = "high-risk" if log.risk_level == "High" else ""
-            html += f"<tr><td>{log.time_created}</td><td>{log.source}</td><td class='{risk_class}'>{log.risk_level}</td><td style='font-size: 12px;'>{log.description}</td></tr>"
+            html += f"<tr><td class='mono'>{log.time_created}</td><td style='font-weight:600;'>{log.source}</td><td><span class='{risk_class}'>{log.risk_level}</span></td><td style='font-size: 12px; color: #475569;'>{log.description}</td></tr>"
 
     html += f"""
             </table>
