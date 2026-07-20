@@ -1,130 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Marker,
-  Line
-} from 'react-simple-maps';
-import clsx from 'clsx';
-
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-
-// Simulated attack nodes
-const generateNodes = () => [
-  { markerOffset: -15, name: "Moscow", coordinates: [37.6173, 55.7558], size: Math.random() * 8 + 4 },
-  { markerOffset: -15, name: "Beijing", coordinates: [116.4074, 39.9042], size: Math.random() * 8 + 4 },
-  { markerOffset: -15, name: "San Francisco", coordinates: [-122.4194, 37.7749], size: 6, isCenter: true },
-  { markerOffset: 15, name: "London", coordinates: [-0.1276, 51.5072], size: Math.random() * 6 + 3 },
-  { markerOffset: 15, name: "Pyongyang", coordinates: [125.7625, 39.0194], size: Math.random() * 8 + 5 },
-  { markerOffset: -15, name: "Tehran", coordinates: [51.3890, 35.6892], size: Math.random() * 7 + 3 },
-  { markerOffset: 15, name: "St. Petersburg", coordinates: [30.3141, 59.9386], size: Math.random() * 6 + 2 },
-];
+import React, { useState, useEffect, useRef } from 'react';
+import Globe from 'react-globe.gl';
+import { ShieldAlert, Crosshair, Wifi } from 'lucide-react';
 
 const ThreatMap = () => {
-  const [nodes, setNodes] = useState(generateNodes());
+  const globeRef = useRef();
+  const [arcsData, setArcsData] = useState([]);
+  const [ringsData, setRingsData] = useState([]);
 
-  // Simulate real-time data changing
+  // Generate simulated realistic 3D attack arcs targeting a central server
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNodes(generateNodes());
-    }, 2000); // Faster update for more dynamic feel
-    return () => clearInterval(interval);
+    // San Francisco (Server / Target)
+    const targetLat = 37.7749;
+    const targetLng = -122.4194;
+
+    // Origin sources
+    const origins = [
+      { lat: 55.7558, lng: 37.6173, name: 'Moscow, RU' },
+      { lat: 39.9042, lng: 116.4074, name: 'Beijing, CN' },
+      { lat: 39.0194, lng: 125.7625, name: 'Pyongyang, KP' },
+      { lat: 35.6892, lng: 51.3890, name: 'Tehran, IR' },
+      { lat: 51.5072, lng: -0.1276, name: 'London, UK' },
+      { lat: -23.5505, lng: -46.6333, name: 'Sao Paulo, BR' }
+    ];
+
+    // Generate arcs
+    const arcs = origins.map(origin => ({
+      startLat: origin.lat,
+      startLng: origin.lng,
+      endLat: targetLat,
+      endLng: targetLng,
+      color: ['#ff00ff', '#00f0ff'] // Gradient from pink to cyan
+    }));
+
+    // Generate pulse rings at origins
+    const rings = origins.map(origin => ({
+      lat: origin.lat,
+      lng: origin.lng,
+      color: '#ff003c' // Magenta
+    }));
+    
+    // Add target ring
+    rings.push({
+      lat: targetLat,
+      lng: targetLng,
+      color: '#00f0ff' // Cyan
+    });
+
+    setArcsData(arcs);
+    setRingsData(rings);
+
+    // Auto-rotate the globe slowly
+    if (globeRef.current) {
+      globeRef.current.controls().autoRotate = true;
+      globeRef.current.controls().autoRotateSpeed = 0.5;
+      globeRef.current.pointOfView({ lat: 20, lng: -40, altitude: 2.2 });
+    }
   }, []);
 
-  const centerNode = nodes.find(n => n.isCenter) || nodes[2];
-
   return (
-    <div className="w-full h-[400px] relative overflow-hidden bg-[var(--ts-panel)] rounded-xl border border-[var(--ts-border)] shadow-sm">
-      {/* Overlay gradient for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--ts-bg)]/20 pointer-events-none z-10" />
+    <div className="w-full h-[500px] relative overflow-hidden bg-[var(--ts-panel)] rounded-xl border border-[var(--ts-border)] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]">
       
-      {/* Title */}
-      <div className="absolute top-4 left-4 z-20">
-        <h2 className="text-sm font-bold text-[var(--ts-text)] uppercase tracking-wider flex items-center gap-2">
+      {/* Title & Overlay UI */}
+      <div className="absolute top-5 left-5 z-20 pointer-events-none">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
+          <Wifi className="w-4 h-4 text-[var(--ts-blue)] animate-pulse" />
           Global Threat Telemetry
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--ts-purple)] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--ts-purple)]"></span>
-          </span>
         </h2>
-        <p className="text-xs text-ts-text-muted">Real-time IP origin plotting</p>
+        <p className="text-xs text-ts-text-muted mt-1 font-mono">Live 3D WebGL Projection</p>
+        
+        <div className="mt-4 flex flex-col gap-2 bg-black/40 backdrop-blur-md border border-[var(--ts-border)] p-3 rounded-lg w-64">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-gray-400">Incoming Vectors</span>
+            <span className="text-[var(--ts-pink)] font-bold font-mono">1,024</span>
+          </div>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-gray-400">Primary Target</span>
+            <span className="text-[var(--ts-blue)] font-bold font-mono">US-WEST-1</span>
+          </div>
+        </div>
       </div>
 
-      <ComposableMap
-        projectionConfig={{
-          scale: 140,
-          rotation: [-11, 0, 0],
-        }}
-        width={800}
-        height={400}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <Geographies geography={geoUrl}>
-          {({ geographies }) =>
-            geographies.map((geo) => (
-              <Geography
-                key={geo.rsmKey}
-                geography={geo}
-                fill="#cbd5e1" // Slate-300 for a consistent light-bluish gray map
-                stroke="#ffffff" // White borders for contrast
-                strokeWidth={0.5}
-                className="dark:fill-slate-800 dark:stroke-slate-900 transition-colors duration-300"
-                style={{
-                  default: { outline: "none" },
-                  hover: { fill: "var(--ts-blue)", outline: "none", opacity: 0.8 },
-                  pressed: { outline: "none" },
-                }}
-              />
-            ))
-          }
-        </Geographies>
+      {/* Target Marker HUD */}
+      <div className="absolute bottom-5 right-5 z-20 pointer-events-none bg-black/40 backdrop-blur-md border border-[var(--ts-border)] p-3 rounded-lg">
+         <div className="flex items-center gap-2 text-xs">
+           <Crosshair className="w-4 h-4 text-green-400 animate-spin-slow" />
+           <span className="text-gray-300">Target Acquired</span>
+         </div>
+      </div>
 
-        {/* Draw connection lines from center to all other nodes */}
-        {nodes.map(({ name, coordinates, isCenter }) => {
-          if (isCenter) return null;
-          return (
-            <Line
-              key={`line-${name}`}
-              from={coordinates}
-              to={centerNode.coordinates}
-              stroke="var(--ts-pink)"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              className="opacity-40 animate-pulse drop-shadow-[0_0_5px_var(--ts-pink)]"
-              style={{
-                pointerEvents: "none",
-              }}
-            />
-          );
-        })}
+      <Globe
+        ref={globeRef}
+        height={500}
+        backgroundColor="rgba(0,0,0,0)"
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         
-        {nodes.map(({ name, coordinates, markerOffset, size }) => (
-          <Marker key={name} coordinates={coordinates}>
-            {/* Animated pulse ring */}
-            <circle 
-              r={size * 2.5} 
-              fill="none" 
-              stroke="var(--ts-purple)" 
-              strokeWidth="1" 
-              className="animate-ping origin-center opacity-50"
-            />
-            {/* Core dot */}
-            <circle 
-              r={size} 
-              fill="var(--ts-purple)" 
-              className="drop-shadow-[0_0_8px_var(--ts-glow-magenta)]"
-            />
-            <text
-              textAnchor="middle"
-              y={markerOffset}
-              style={{ fontFamily: "monospace", fill: "var(--ts-text-muted)", fontSize: "10px", fontWeight: "bold" }}
-            >
-              {name}
-            </text>
-          </Marker>
-        ))}
-      </ComposableMap>
+        // Render glowing arcs
+        arcsData={arcsData}
+        arcColor="color"
+        arcDashLength={0.4}
+        arcDashGap={0.2}
+        arcDashAnimateTime={2000}
+        arcAltitudeAutoScale={0.4}
+        
+        // Render pulse rings
+        ringsData={ringsData}
+        ringColor="color"
+        ringMaxRadius={4}
+        ringPropagationSpeed={2}
+        ringRepeatPeriod={1000}
+      />
     </div>
   );
 };

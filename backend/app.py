@@ -153,6 +153,51 @@ def manage_cases():
         "evidence_count": len(c.evidence) if c.evidence else 0
     } for c in cases])
 
+@app.route("/api/evidence")
+def get_all_evidence():
+    evidence_list = Evidence.query.order_by(Evidence.id.desc()).all()
+    return jsonify([{
+        "id": ev.id,
+        "filename": ev.filename,
+        "hash_md5": ev.hash_md5,
+        "hash_sha256": ev.hash_sha256,
+        "case_id": ev.case_id,
+        "case_number": ev.case.case_number if ev.case else "Unknown",
+        "size": os.path.getsize(ev.filepath) if os.path.exists(ev.filepath) else 0,
+        "date_added": ev.case.created_at.isoformat() if ev.case else datetime.utcnow().isoformat()
+    } for ev in evidence_list])
+
+@app.route("/api/malware/latest")
+def get_latest_malware():
+    # Find latest evidence that is an executable
+    latest_malware = Evidence.query.filter(Evidence.filename.like('%.exe') | Evidence.filename.like('%.dll')).order_by(Evidence.id.desc()).first()
+    
+    if not latest_malware:
+        return jsonify({"status": "error", "message": "No malware samples found in the database."}), 404
+        
+    logs = ForensicLog.query.filter_by(evidence_id=latest_malware.id).all()
+    
+    return jsonify({
+        "status": "success",
+        "evidence": {
+            "id": latest_malware.id,
+            "filename": latest_malware.filename,
+            "hash_md5": latest_malware.hash_md5,
+            "hash_sha256": latest_malware.hash_sha256,
+            "size": os.path.getsize(latest_malware.filepath) if os.path.exists(latest_malware.filepath) else 0,
+            "case_number": latest_malware.case.case_number if latest_malware.case else "Unknown"
+        },
+        "analysis_logs": [{
+            "id": log.id,
+            "time_created": log.time_created,
+            "event_id": log.event_id,
+            "source": log.source,
+            "description": log.description,
+            "risk_level": log.risk_level,
+            "tool_source": log.tool_source
+        } for log in logs]
+    })
+
 @app.route("/api/cases/<int:case_id>")
 def case_details(case_id):
     case = Case.query.get_or_404(case_id)
