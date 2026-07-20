@@ -60,6 +60,13 @@ const ThreatMap = () => {
   return (
     <div className="w-full h-[500px] relative overflow-hidden bg-[#020617] rounded-xl border border-[var(--ts-border)] shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
       
+      {/* TraceScope Branding Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5 overflow-hidden">
+        <h1 className="text-[12rem] font-black tracking-tighter text-white whitespace-nowrap select-none blur-[2px]">
+          TRACESCOPE
+        </h1>
+      </div>
+
       {/* Title & Overlay UI */}
       <div className="absolute top-5 left-5 z-20 pointer-events-none">
         <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 drop-shadow-md">
