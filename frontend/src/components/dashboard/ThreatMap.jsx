@@ -3,7 +3,8 @@ import {
   ComposableMap,
   Geographies,
   Geography,
-  Marker
+  Marker,
+  Line
 } from 'react-simple-maps';
 import clsx from 'clsx';
 
@@ -13,7 +14,7 @@ const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 const generateNodes = () => [
   { markerOffset: -15, name: "Moscow", coordinates: [37.6173, 55.7558], size: Math.random() * 8 + 4 },
   { markerOffset: -15, name: "Beijing", coordinates: [116.4074, 39.9042], size: Math.random() * 8 + 4 },
-  { markerOffset: -15, name: "San Francisco", coordinates: [-122.4194, 37.7749], size: Math.random() * 8 + 4 },
+  { markerOffset: -15, name: "San Francisco", coordinates: [-122.4194, 37.7749], size: 6, isCenter: true },
   { markerOffset: 15, name: "London", coordinates: [-0.1276, 51.5072], size: Math.random() * 6 + 3 },
   { markerOffset: 15, name: "Pyongyang", coordinates: [125.7625, 39.0194], size: Math.random() * 8 + 5 },
   { markerOffset: -15, name: "Tehran", coordinates: [51.3890, 35.6892], size: Math.random() * 7 + 3 },
@@ -27,9 +28,11 @@ const ThreatMap = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setNodes(generateNodes());
-    }, 4000);
+    }, 2000); // Faster update for more dynamic feel
     return () => clearInterval(interval);
   }, []);
+
+  const centerNode = nodes.find(n => n.isCenter) || nodes[2];
 
   return (
     <div className="w-full h-[400px] relative overflow-hidden bg-[var(--ts-panel)] rounded-xl border border-[var(--ts-border)] shadow-sm">
@@ -63,18 +66,38 @@ const ThreatMap = () => {
               <Geography
                 key={geo.rsmKey}
                 geography={geo}
-                fill="var(--ts-border)"
-                stroke="var(--ts-panel)"
+                fill="#cbd5e1" // Slate-300 for a consistent light-bluish gray map
+                stroke="#ffffff" // White borders for contrast
                 strokeWidth={0.5}
+                className="dark:fill-slate-800 dark:stroke-slate-900 transition-colors duration-300"
                 style={{
                   default: { outline: "none" },
-                  hover: { fill: "var(--ts-text-muted)", outline: "none" },
+                  hover: { fill: "var(--ts-blue)", outline: "none", opacity: 0.8 },
                   pressed: { outline: "none" },
                 }}
               />
             ))
           }
         </Geographies>
+
+        {/* Draw connection lines from center to all other nodes */}
+        {nodes.map(({ name, coordinates, isCenter }) => {
+          if (isCenter) return null;
+          return (
+            <Line
+              key={`line-${name}`}
+              from={coordinates}
+              to={centerNode.coordinates}
+              stroke="var(--ts-pink)"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              className="opacity-40 animate-pulse drop-shadow-[0_0_5px_var(--ts-pink)]"
+              style={{
+                pointerEvents: "none",
+              }}
+            />
+          );
+        })}
         
         {nodes.map(({ name, coordinates, markerOffset, size }) => (
           <Marker key={name} coordinates={coordinates}>
