@@ -6,3 +6,4 @@ Flask-SQLAlchemy
 requests
 flask-cors
 python-dotenv
+scapy
