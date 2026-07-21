@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Cpu, Terminal, ShieldAlert, Network, Code, ServerCrash } from 'lucide-react';
 import clsx from 'clsx';
+import InfoBox from '../components/common/InfoBox';
 
 const Memory = () => {
   const [logs, setLogs] = useState([]);
@@ -49,6 +50,11 @@ const Memory = () => {
           </button>
         </div>
       </div>
+
+      <InfoBox 
+        title="What does this do?" 
+        description="Memory Forensics looks inside the computer's temporary brain (RAM). Advanced viruses often try to hide by never saving themselves to the hard drive, living purely in memory. This tool extracts raw text and hidden processes from that memory to expose them." 
+      />
 
       <div className="flex-1 glass-panel flex flex-col min-h-0 relative overflow-hidden">
         {/* Terminal Header */}

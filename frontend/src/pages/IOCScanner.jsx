@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Target, Search, ShieldAlert, ShieldCheck, Activity, Globe, Tag } from 'lucide-react';
 import clsx from 'clsx';
+import InfoBox from '../components/common/InfoBox';
 
 const IOCScanner = () => {
   const [ioc, setIoc] = useState('');
@@ -31,6 +32,11 @@ const IOCScanner = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto min-h-[calc(100vh-120px)]">
+      <InfoBox 
+        title="What does this do?" 
+        description="The Threat Intelligence Radar takes a digital fingerprint (like an MD5 hash) of a suspicious file and cross-references it with global security databases (like VirusTotal). It instantly tells you if other cybersecurity vendors around the world have already identified the file as a virus or malware." 
+      />
+
       <div className="text-center mb-8 mt-10">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[var(--ts-blue)]/10 border border-[var(--ts-blue)]/30 mb-6">
           <Target className="w-10 h-10 text-[var(--ts-blue)]" />

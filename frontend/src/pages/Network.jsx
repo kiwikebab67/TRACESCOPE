@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Network as NetworkIcon, Search, Download, AlertTriangle, ShieldAlert, FileText, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import InfoBox from '../components/common/InfoBox';
 
 const Network = () => {
   const [packets, setPackets] = useState([]);
@@ -41,6 +42,11 @@ const Network = () => {
           <button className="btn-secondary py-2 px-4 flex items-center gap-2"><Download className="w-4 h-4" /> PCAP</button>
         </div>
       </div>
+
+      <InfoBox 
+        title="What does this do?" 
+        description="The Network Protocol Analyzer acts like a wiretap for the compromised system. It intercepts and reads every packet of data that traveled across the network, allowing you to see exactly who the computer was talking to, what files they were downloading, and if any data was being secretly stolen." 
+      />
 
       <div className="flex gap-6 flex-1 min-h-0">
         {/* Packet List */}

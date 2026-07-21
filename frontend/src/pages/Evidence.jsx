@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, ShieldAlert, FileText, Database, Activity, FileKey, HardDrive, Download, Eye, Link } from 'lucide-react';
 import axios from 'axios';
 import clsx from 'clsx';
+import InfoBox from '../components/common/InfoBox';
 
 const Evidence = () => {
   const [evidenceData, setEvidenceData] = useState([]);
@@ -50,6 +51,10 @@ const Evidence = () => {
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-6">
       <div className="flex-1 flex flex-col gap-6 h-full">
+        <InfoBox 
+          title="What does this do?" 
+          description="The Digital Evidence Locker is where you upload the raw files collected from a compromised system (like event logs, memory dumps, or network captures). Once uploaded, the backend engines will automatically dissect these files and populate the other dashboards with findings." 
+        />
         <div className="flex items-center justify-between shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-gradient flex items-center gap-2">

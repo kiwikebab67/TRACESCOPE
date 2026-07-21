@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Activity, ShieldAlert, Cpu, HardDrive, Filter, Clock } from 'lucide-react';
 import clsx from 'clsx';
+import InfoBox from '../components/common/InfoBox';
 
 const Timeline = () => {
   const [logs, setLogs] = useState([]);
@@ -44,6 +45,11 @@ const Timeline = () => {
           <button className="btn-secondary py-2 px-4 flex items-center gap-2"><Filter className="w-4 h-4" /> Filter</button>
         </div>
       </div>
+
+      <InfoBox 
+        title="What does this do?" 
+        description="The Event Timeline pieces together the exact chronological order of how an attack happened. It takes all the raw logs, alerts, and system changes from different computers and maps them vertically so you can trace the infection from the initial compromise all the way to data exfiltration." 
+      />
 
       <div className="flex-1 glass-panel p-6 overflow-y-auto custom-scrollbar relative">
         {loading ? (

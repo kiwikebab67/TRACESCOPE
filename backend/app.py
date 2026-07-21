@@ -251,18 +251,18 @@ def get_timeline():
 
 @app.route("/api/network")
 def get_network_pcap():
-    # High-fidelity simulated PCAP packets for Network Analysis
-    packets = [
-        {"id": 1, "time": "0.000000", "source_ip": "192.168.1.105", "dest_ip": "1.1.1.1", "protocol": "DNS", "length": 74, "info": "Standard query 0x1a2b A login.microsoftonline.com", "risk": "Low"},
-        {"id": 2, "time": "0.015231", "source_ip": "1.1.1.1", "dest_ip": "192.168.1.105", "protocol": "DNS", "length": 90, "info": "Standard query response 0x1a2b A 20.190.160.129", "risk": "Low"},
-        {"id": 3, "time": "0.021094", "source_ip": "192.168.1.105", "dest_ip": "20.190.160.129", "protocol": "TCP", "length": 66, "info": "54321 > 443 [SYN] Seq=0 Win=64240 Len=0 MSS=1460", "risk": "Low"},
-        {"id": 4, "time": "0.045112", "source_ip": "20.190.160.129", "dest_ip": "192.168.1.105", "protocol": "TCP", "length": 66, "info": "443 > 54321 [SYN, ACK] Seq=0 Ack=1 Win=65535 Len=0", "risk": "Low"},
-        {"id": 5, "time": "0.045233", "source_ip": "192.168.1.105", "dest_ip": "20.190.160.129", "protocol": "TLSv1.2", "length": 517, "info": "Client Hello", "risk": "Low"},
-        {"id": 6, "time": "14.231902", "source_ip": "192.168.1.105", "dest_ip": "185.220.101.4", "protocol": "TCP", "length": 66, "info": "49152 > 443 [SYN] Seq=0 Win=64240 Len=0 MSS=1460", "risk": "High", "note": "Connection to known Tor exit node"},
-        {"id": 7, "time": "14.288111", "source_ip": "185.220.101.4", "dest_ip": "192.168.1.105", "protocol": "TCP", "length": 66, "info": "443 > 49152 [SYN, ACK] Seq=0 Ack=1 Win=65535 Len=0", "risk": "High"},
-        {"id": 8, "time": "14.289001", "source_ip": "192.168.1.105", "dest_ip": "185.220.101.4", "protocol": "TLSv1.3", "length": 1452, "info": "Application Data [Encrypted C2 Beacon]", "risk": "High"},
-        {"id": 9, "time": "14.500122", "source_ip": "185.220.101.4", "dest_ip": "192.168.1.105", "protocol": "TLSv1.3", "length": 234, "info": "Application Data [Encrypted Response]", "risk": "High"}
-    ]
+    # Find latest uploaded PCAP file
+    latest_pcap = Evidence.query.filter(Evidence.filename.like('%.pcap') | Evidence.filename.like('%.cap')).order_by(Evidence.id.desc()).first()
+    
+    if not latest_pcap:
+        return jsonify({"status": "error", "message": "No network packet capture (.pcap) found. Please upload a PCAP file to begin analysis.", "packets": []})
+        
+    if not os.path.exists(latest_pcap.filepath):
+        return jsonify({"status": "error", "message": "PCAP file missing from disk.", "packets": []})
+        
+    from services.artifact_parser import parse_pcap_capture
+    packets = parse_pcap_capture(latest_pcap.filepath)
+    
     return jsonify({"status": "success", "packets": packets})
 
 @app.route("/api/memory/latest")
@@ -271,13 +271,10 @@ def get_latest_memory():
     logs = ForensicLog.query.filter_by(tool_source="volatility").order_by(ForensicLog.id.desc()).all()
     
     if not logs:
-        # Generate mock volatility data if none exists in DB
-        from services.analyzer import analyze_memory_dump
-        mock_events = analyze_memory_dump("mock.raw", "mock.raw")
         return jsonify({
-            "status": "success", 
-            "analysis_logs": mock_events,
-            "message": "Showing simulated Volatility extraction (No actual .raw/.mem dump uploaded)."
+            "status": "error", 
+            "analysis_logs": [],
+            "message": "No memory forensics data found. Please upload a .raw or .mem memory dump."
         })
         
     return jsonify({

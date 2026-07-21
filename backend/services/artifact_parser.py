@@ -89,41 +89,69 @@ def parse_evtx_log(filepath):
 
 def parse_pcap_capture(filepath):
     """
-    Simulates a Wireshark PCAP network analysis.
+    Parses a real PCAP network capture using scapy.
     Extracts network conversations, protocols, and HTTP/DNS payloads.
     """
-    # High-fidelity simulated packets
-    packets = [
-        {
-            'event_id': 5001,
-            'source': 'Wireshark: DNS Query',
-            'description': 'Standard DNS query for login.microsoft.com. A-record returned: 20.190.160.129.',
-            'risk_level': 'Low',
-            'time_created': 'Frame 1 - 0.00s'
-        },
-        {
-            'event_id': 5002,
-            'source': 'Wireshark: DNS Query',
-            'description': 'ALERT: Anomalous DNS request for suspicious domain: rx-c2-panel.xyz. DNS server returned: 185.220.101.4.',
-            'risk_level': 'High',
-            'time_created': 'Frame 14 - 1.25s'
-        },
-        {
-            'event_id': 5003,
-            'source': 'Wireshark: HTTP Traffic',
-            'description': 'GET /beacon.bin HTTP/1.1 from Local Host to 185.220.101.4. User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64). Payload: 260 KB bin file.',
-            'risk_level': 'High',
-            'time_created': 'Frame 25 - 2.10s'
-        },
-        {
-            'event_id': 5004,
-            'source': 'Wireshark: TCP Conversation',
-            'description': 'TCP connection established on port 443 with 185.220.101.4. Data stream encrypted, matching Cobalt Strike TLS fingerprint.',
-            'risk_level': 'High',
-            'time_created': 'Frame 39 - 3.45s'
-        }
-    ]
-    return packets
+    try:
+        from scapy.all import rdpcap, IP, TCP, UDP, DNS, Raw
+    except ImportError:
+        return [{"id": 1, "time": "N/A", "source_ip": "Error", "dest_ip": "Error", "protocol": "Error", "length": 0, "info": "Scapy library not installed", "risk": "High"}]
+
+    packets_data = []
+    try:
+        # Load up to 100 packets to prevent massive payloads freezing the app
+        pkts = rdpcap(filepath, count=100)
+        
+        for idx, pkt in enumerate(pkts):
+            if IP in pkt:
+                src = pkt[IP].src
+                dst = pkt[IP].dst
+                proto = "IP"
+                info = ""
+                risk = "Low"
+                length = len(pkt)
+                
+                if TCP in pkt:
+                    proto = "TCP"
+                    info = f"{pkt[TCP].sport} > {pkt[TCP].dport} [Flags: {pkt[TCP].flags}]"
+                    if pkt[TCP].dport in [443, 8443]:
+                        proto = "TLS"
+                    if Raw in pkt and b'HTTP' in pkt[Raw].load:
+                        proto = "HTTP"
+                        try:
+                            info = pkt[Raw].load.decode('utf-8', errors='ignore').split('\r\n')[0]
+                        except:
+                            pass
+                elif UDP in pkt:
+                    proto = "UDP"
+                    info = f"{pkt[UDP].sport} > {pkt[UDP].dport}"
+                    if DNS in pkt:
+                        proto = "DNS"
+                        if pkt[DNS].qd:
+                            try:
+                                info = f"DNS Query: {pkt[DNS].qd.qname.decode('utf-8', errors='ignore')}"
+                            except:
+                                info = "DNS Query"
+                
+                # Basic heuristic for risk
+                if dst in ["185.220.101.4", "9.9.9.9"] or src in ["185.220.101.4"]:
+                    risk = "High"
+                if "beacon" in info.lower() or "cmd.exe" in info.lower():
+                    risk = "High"
+                
+                packets_data.append({
+                    "id": idx + 1,
+                    "time": f"{pkt.time:.6f}",
+                    "source_ip": src,
+                    "dest_ip": dst,
+                    "protocol": proto,
+                    "length": length,
+                    "info": info,
+                    "risk": risk
+                })
+        return packets_data
+    except Exception as e:
+        return [{"id": 1, "time": "N/A", "source_ip": "Error", "dest_ip": "Error", "protocol": "Error", "length": 0, "info": f"Failed to parse PCAP: {str(e)}", "risk": "High"}]
 
 def parse_autopsy_disk(filepath):
     """
