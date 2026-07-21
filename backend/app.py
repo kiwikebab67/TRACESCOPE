@@ -272,8 +272,11 @@ def case_details(case_id):
 
 @app.route("/api/timeline")
 def get_timeline():
-    # Fetch all logs for MVP timeline
-    logs = ForensicLog.query.all()
+    case_id = request.args.get('caseId')
+    if not case_id:
+        return jsonify([])
+        
+    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id).order_by(ForensicLog.id.asc()).all()
     return jsonify([{
         "id": log.id,
         "time_created": log.time_created,
@@ -336,20 +339,8 @@ def ioc_scan():
         
     vt_api_key = os.environ.get('VT_API_KEY') or app.config.get('VT_API_KEY')
     if not vt_api_key:
-        # Return simulated high-fidelity response if no API key
-        import time
-        time.sleep(1) # Simulate network delay
-        return jsonify({
-            "status": "success",
-            "ioc": ioc,
-            "malicious": 58,
-            "suspicious": 12,
-            "undetected": 19,
-            "tags": ["trojan", "ransomware", "cobalt-strike", "c2"],
-            "network_connections": ["185.220.101.4", "9.9.9.9"],
-            "message": "Simulated Threat Intel (VT_API_KEY not configured)."
-        })
-        
+        return jsonify({"status": "error", "message": "VT_API_KEY is not configured in the environment variables. Please provide a valid VirusTotal API key to perform real-time threat intelligence lookups."}), 400
+          
     url = f"https://www.virustotal.com/api/v3/files/{ioc}"
     headers = {
         "accept": "application/json",
