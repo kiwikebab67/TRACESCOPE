@@ -99,8 +99,8 @@ def parse_pcap_capture(filepath):
 
     packets_data = []
     try:
-        # Load up to 100 packets to prevent massive payloads freezing the app
-        pkts = rdpcap(filepath, count=100)
+        # Load up to 2500 packets to prevent massive payloads freezing the app
+        pkts = rdpcap(filepath, count=2500)
         
         for idx, pkt in enumerate(pkts):
             if IP in pkt:
