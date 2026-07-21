@@ -234,6 +234,115 @@ def case_details(case_id):
         "analysis_results": analysis_results
     })
 
+@app.route("/api/timeline")
+def get_timeline():
+    # Fetch all logs for MVP timeline
+    logs = ForensicLog.query.all()
+    return jsonify([{
+        "id": log.id,
+        "time_created": log.time_created,
+        "event_id": log.event_id,
+        "source": log.source,
+        "description": log.description,
+        "risk_level": log.risk_level,
+        "tool_source": log.tool_source,
+        "case_number": log.evidence.case.case_number if log.evidence and log.evidence.case else "Unknown"
+    } for log in logs])
+
+@app.route("/api/network")
+def get_network_pcap():
+    # High-fidelity simulated PCAP packets for Network Analysis
+    packets = [
+        {"id": 1, "time": "0.000000", "source_ip": "192.168.1.105", "dest_ip": "1.1.1.1", "protocol": "DNS", "length": 74, "info": "Standard query 0x1a2b A login.microsoftonline.com", "risk": "Low"},
+        {"id": 2, "time": "0.015231", "source_ip": "1.1.1.1", "dest_ip": "192.168.1.105", "protocol": "DNS", "length": 90, "info": "Standard query response 0x1a2b A 20.190.160.129", "risk": "Low"},
+        {"id": 3, "time": "0.021094", "source_ip": "192.168.1.105", "dest_ip": "20.190.160.129", "protocol": "TCP", "length": 66, "info": "54321 > 443 [SYN] Seq=0 Win=64240 Len=0 MSS=1460", "risk": "Low"},
+        {"id": 4, "time": "0.045112", "source_ip": "20.190.160.129", "dest_ip": "192.168.1.105", "protocol": "TCP", "length": 66, "info": "443 > 54321 [SYN, ACK] Seq=0 Ack=1 Win=65535 Len=0", "risk": "Low"},
+        {"id": 5, "time": "0.045233", "source_ip": "192.168.1.105", "dest_ip": "20.190.160.129", "protocol": "TLSv1.2", "length": 517, "info": "Client Hello", "risk": "Low"},
+        {"id": 6, "time": "14.231902", "source_ip": "192.168.1.105", "dest_ip": "185.220.101.4", "protocol": "TCP", "length": 66, "info": "49152 > 443 [SYN] Seq=0 Win=64240 Len=0 MSS=1460", "risk": "High", "note": "Connection to known Tor exit node"},
+        {"id": 7, "time": "14.288111", "source_ip": "185.220.101.4", "dest_ip": "192.168.1.105", "protocol": "TCP", "length": 66, "info": "443 > 49152 [SYN, ACK] Seq=0 Ack=1 Win=65535 Len=0", "risk": "High"},
+        {"id": 8, "time": "14.289001", "source_ip": "192.168.1.105", "dest_ip": "185.220.101.4", "protocol": "TLSv1.3", "length": 1452, "info": "Application Data [Encrypted C2 Beacon]", "risk": "High"},
+        {"id": 9, "time": "14.500122", "source_ip": "185.220.101.4", "dest_ip": "192.168.1.105", "protocol": "TLSv1.3", "length": 234, "info": "Application Data [Encrypted Response]", "risk": "High"}
+    ]
+    return jsonify({"status": "success", "packets": packets})
+
+@app.route("/api/memory/latest")
+def get_latest_memory():
+    # Fetch latest volatility memory analysis logs
+    logs = ForensicLog.query.filter_by(tool_source="volatility").order_by(ForensicLog.id.desc()).all()
+    
+    if not logs:
+        # Generate mock volatility data if none exists in DB
+        from services.analyzer import analyze_memory_dump
+        mock_events = analyze_memory_dump("mock.raw", "mock.raw")
+        return jsonify({
+            "status": "success", 
+            "analysis_logs": mock_events,
+            "message": "Showing simulated Volatility extraction (No actual .raw/.mem dump uploaded)."
+        })
+        
+    return jsonify({
+        "status": "success",
+        "analysis_logs": [{
+            "id": log.id,
+            "time_created": log.time_created,
+            "event_id": log.event_id,
+            "source": log.source,
+            "description": log.description,
+            "risk_level": log.risk_level,
+            "tool_source": log.tool_source
+        } for log in logs],
+        "message": "Showing Volatility extraction from latest uploaded memory dump."
+    })
+
+@app.route("/api/ioc-scan", methods=["POST"])
+def ioc_scan():
+    data = request.json
+    ioc = data.get("ioc")
+    if not ioc:
+        return jsonify({"status": "error", "message": "No IOC provided."}), 400
+        
+    vt_api_key = os.environ.get('VT_API_KEY') or app.config.get('VT_API_KEY')
+    if not vt_api_key:
+        # Return simulated high-fidelity response if no API key
+        import time
+        time.sleep(1) # Simulate network delay
+        return jsonify({
+            "status": "success",
+            "ioc": ioc,
+            "malicious": 58,
+            "suspicious": 12,
+            "undetected": 19,
+            "tags": ["trojan", "ransomware", "cobalt-strike", "c2"],
+            "network_connections": ["185.220.101.4", "9.9.9.9"],
+            "message": "Simulated Threat Intel (VT_API_KEY not configured)."
+        })
+        
+    url = f"https://www.virustotal.com/api/v3/files/{ioc}"
+    headers = {
+        "accept": "application/json",
+        "x-apikey": vt_api_key
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            res_data = response.json()
+            stats = res_data['data']['attributes']['last_analysis_stats']
+            tags = res_data['data']['attributes'].get('tags', [])
+            return jsonify({
+                "status": "success",
+                "ioc": ioc,
+                "malicious": stats.get('malicious', 0),
+                "suspicious": stats.get('suspicious', 0),
+                "undetected": stats.get('undetected', 0),
+                "tags": tags,
+                "message": "Live intelligence pulled from VirusTotal."
+            })
+        else:
+            return jsonify({"status": "error", "message": f"VirusTotal API returned {response.status_code}. Is it a valid hash?"}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/api/threat-intel/<int:case_id>")
 def threat_intel(case_id):
     case = Case.query.get_or_404(case_id)

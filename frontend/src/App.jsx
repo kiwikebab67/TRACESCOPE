@@ -10,6 +10,10 @@ import Malware from './pages/Malware';
 import Connect from './pages/Connect';
 import PlaceholderPage from './pages/PlaceholderPage';
 import Login from './pages/Login';
+import Timeline from './pages/Timeline';
+import Network from './pages/Network';
+import Memory from './pages/Memory';
+import IOCScanner from './pages/IOCScanner';
 
 function App() {
   // Simple auth state for MVP
@@ -36,18 +40,20 @@ function App() {
         <Route path="/malware" element={<ProtectedRoute><Malware /></ProtectedRoute>} />
         <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
         
+        {/* Quad-Core Analytics Modules */}
+        <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
+        <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
+        <Route path="/memory" element={<ProtectedRoute><Memory /></ProtectedRoute>} />
+        <Route path="/ioc-scanner" element={<ProtectedRoute><IOCScanner /></ProtectedRoute>} />
+        
         {/* Scaffolded Routes (Under Construction) */}
-        <Route path="/timeline" element={<ProtectedRoute><PlaceholderPage moduleName="Event Timeline" /></ProtectedRoute>} />
         <Route path="/chain-of-custody" element={<ProtectedRoute><PlaceholderPage moduleName="Chain of Custody" /></ProtectedRoute>} />
-        <Route path="/memory" element={<ProtectedRoute><PlaceholderPage moduleName="Memory Analysis" /></ProtectedRoute>} />
         <Route path="/registry" element={<ProtectedRoute><PlaceholderPage moduleName="Registry Analysis" /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><PlaceholderPage moduleName="Log Analysis" /></ProtectedRoute>} />
         <Route path="/usb" element={<ProtectedRoute><PlaceholderPage moduleName="USB Analysis" /></ProtectedRoute>} />
-        <Route path="/network" element={<ProtectedRoute><PlaceholderPage moduleName="Network Analysis" /></ProtectedRoute>} />
         <Route path="/email" element={<ProtectedRoute><PlaceholderPage moduleName="Email Investigation" /></ProtectedRoute>} />
         <Route path="/browser" element={<ProtectedRoute><PlaceholderPage moduleName="Browser Artifacts" /></ProtectedRoute>} />
         <Route path="/threat-intel" element={<ProtectedRoute><PlaceholderPage moduleName="Threat Intelligence" /></ProtectedRoute>} />
-        <Route path="/ioc-scanner" element={<ProtectedRoute><PlaceholderPage moduleName="IOC Scanner" /></ProtectedRoute>} />
         <Route path="/hashes" element={<ProtectedRoute><PlaceholderPage moduleName="Hash Database" /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><PlaceholderPage moduleName="Forensic Reports" /></ProtectedRoute>} />
         
