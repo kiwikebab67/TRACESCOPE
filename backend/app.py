@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 
 load_dotenv() # Load environment variables from .env file
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from config import Config
 from models.database import db
@@ -33,13 +33,21 @@ with app.app_context():
 # Serve React App
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    response = make_response(app.send_static_file('index.html'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 @app.errorhandler(404)
 def serve_react(e):
     if request.path.startswith('/api/'):
         return jsonify({"error": "Not Found"}), 404
-    return app.send_static_file('index.html')
+    response = make_response(app.send_static_file('index.html'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 from datetime import datetime, timedelta
 
