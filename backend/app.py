@@ -634,6 +634,12 @@ def upload_evidence(case_id):
                 db.session.add(db_log)
             db.session.commit()
             
+        return jsonify({
+            "status": "success", 
+            "message": f"Successfully ingested {filename} into pipeline",
+            "evidence_id": new_evidence.id
+        })
+            
 @app.route("/api/ai/chat", methods=["POST"])
 def ai_chat():
     data = request.json
