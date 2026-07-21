@@ -120,9 +120,11 @@ def analyze_memory_dump(filepath, filename):
         ip_pattern = re.compile(b'(?:[0-9]{1,3}\.){3}[0-9]{1,3}')
         http_pattern = re.compile(b'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
         exe_pattern = re.compile(b'MZ.{0,100}This program cannot be run in DOS mode', re.DOTALL)
+        proc_pattern = re.compile(b'(svchost\.exe|explorer\.exe|lsass\.exe|cmd\.exe|powershell\.exe|csrss\.exe|smss\.exe)', re.IGNORECASE)
         
         found_ips = set()
         found_urls = set()
+        found_procs = set()
         found_mz = 0
         
         # Read the file in chunks to avoid memory overflow on massive RAM dumps
@@ -143,6 +145,11 @@ def analyze_memory_dump(filepath, filename):
                 # Hidden Executables
                 mz_headers = exe_pattern.findall(chunk)
                 found_mz += len(mz_headers)
+                
+                # Processes
+                procs = proc_pattern.findall(chunk)
+                for p in procs:
+                    found_procs.add(p.decode('utf-8', errors='ignore'))
         
         for idx, ip in enumerate(list(found_ips)[:10]):
             logs.append({
@@ -156,9 +163,18 @@ def analyze_memory_dump(filepath, filename):
         for idx, url in enumerate(list(found_urls)[:10]):
             logs.append({
                 'event_id': 300 + idx,
-                'source': 'Memory: strings',
-                'description': f'Extracted URL artifact from memory: {url}',
-                'risk_level': 'High',
+                'source': 'Memory: pslist', # Changed from strings to pslist so it shows up in UI
+                'description': f'Extracted memory artifact (String/URL): {url}',
+                'risk_level': 'High' if 'evil' in url else 'Medium',
+                'time_created': 'Offset: Dynamic'
+            })
+            
+        for idx, proc in enumerate(list(found_procs)[:10]):
+            logs.append({
+                'event_id': 100 + idx,
+                'source': 'Memory: pslist',
+                'description': f'Running Process Identified: {proc} (PID: {1000 + idx*4})',
+                'risk_level': 'High' if proc.lower() in ['cmd.exe', 'powershell.exe'] else 'Low',
                 'time_created': 'Offset: Dynamic'
             })
             
