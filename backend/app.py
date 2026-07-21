@@ -593,11 +593,11 @@ def upload_evidence(case_id):
             packet_events = parse_pcap_capture(save_path)
             for pkt in packet_events:
                 db_log = ForensicLog(
-                    time_created=pkt['time_created'],
-                    event_id=pkt['event_id'],
-                    source=pkt['source'],
-                    description=pkt['description'],
-                    risk_level=pkt['risk_level'],
+                    time_created=pkt.get('time', 'Unknown'),
+                    event_id=pkt.get('id', 0),
+                    source=f"{pkt.get('source_ip', '')} -> {pkt.get('dest_ip', '')}",
+                    description=f"[{pkt.get('protocol', 'TCP')}] {pkt.get('info', '')}",
+                    risk_level=pkt.get('risk', 'Low'),
                     tool_source="wireshark",
                     evidence_id=new_evidence.id
                 )
