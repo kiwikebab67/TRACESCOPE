@@ -114,8 +114,10 @@ const ThreatMap = () => {
         ref={globeRef}
         height={500}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        atmosphereColor="#00f0ff"
+        atmosphereAltitude={0.25}
         
         // Render glowing arcs
         arcsData={arcsData}
