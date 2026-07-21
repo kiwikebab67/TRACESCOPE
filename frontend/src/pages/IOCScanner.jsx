@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Target, Search, ShieldAlert, ShieldCheck, Activity, Globe, Tag } from 'lucide-react';
+import { Target, Search, ShieldAlert, ShieldCheck, Activity, Globe, Tag, UploadCloud } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
+import FileUpload from '../components/FileUpload';
 
 const IOCScanner = () => {
   const [ioc, setIoc] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const activeCaseId = localStorage.getItem('activeCaseId');
 
   const handleScan = async (e) => {
     e.preventDefault();
@@ -32,6 +35,17 @@ const IOCScanner = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto min-h-[calc(100vh-120px)]">
+      <div className="flex justify-end mb-2 mt-4">
+        <button 
+          onClick={() => setIsUploadOpen(true)}
+          className="btn-primary flex items-center gap-2"
+          disabled={!activeCaseId}
+          title={!activeCaseId ? "Open a case first in Investigations" : "Upload Evidence"}
+        >
+          <UploadCloud className="w-4 h-4" />
+          Upload Evidence
+        </button>
+      </div>
       <InfoBox 
         title="What does this do?" 
         description="The Threat Intelligence Radar takes a digital fingerprint (like an MD5 hash) of a suspicious file and cross-references it with global security databases (like VirusTotal). It instantly tells you if other cybersecurity vendors around the world have already identified the file as a virus or malware." 
@@ -142,6 +156,16 @@ const IOCScanner = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {isUploadOpen && (
+        <FileUpload 
+          caseId={activeCaseId} 
+          onClose={() => setIsUploadOpen(false)} 
+          onUploadComplete={() => {
+            setIsUploadOpen(false);
+          }}
+        />
       )}
     </div>
   );

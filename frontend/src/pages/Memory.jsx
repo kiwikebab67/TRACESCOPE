@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Cpu, Terminal, ShieldAlert, Network, Code, ServerCrash } from 'lucide-react';
+import { Cpu, Terminal, ShieldAlert, Network, Code, ServerCrash, UploadCloud } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
+import FileUpload from '../components/FileUpload';
 
 const Memory = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pslist');
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const activeCaseId = localStorage.getItem('activeCaseId');
+
+  const fetchMemory = async () => {
+    try {
+      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const res = await axios.get(`${baseUrl}/api/memory/latest`);
+      setLogs(res.data.analysis_logs || []);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMemory = async () => {
-      try {
-        const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
-        const res = await axios.get(`${baseUrl}/api/memory/latest`);
-        setLogs(res.data.analysis_logs || []);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
     fetchMemory();
   }, []);
 
@@ -88,6 +92,17 @@ const Memory = () => {
           )}
         </div>
       </div>
+
+      {isUploadOpen && (
+        <FileUpload 
+          caseId={activeCaseId} 
+          onClose={() => setIsUploadOpen(false)} 
+          onUploadComplete={() => {
+            setIsUploadOpen(false);
+            fetchMemory();
+          }}
+        />
+      )}
     </div>
   );
 };

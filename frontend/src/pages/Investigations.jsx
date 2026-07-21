@@ -11,11 +11,13 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import FileUpload from '../components/FileUpload';
+import CaseModal from '../components/common/CaseModal';
 
 const Investigations = () => {
   const [cases, setCases] = useState([]);
   const [search, setSearch] = useState('');
   const [activeUploadCaseId, setActiveUploadCaseId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCases();
@@ -31,18 +33,18 @@ const Investigations = () => {
     }
   };
 
-  const handleInitializeCase = async () => {
+  const handleInitializeCase = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleSaveCase = async (formData) => {
     try {
       const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
-      await axios.post(`${baseUrl}/api/cases`, {
-        case_number: `CASE-${Math.floor(Math.random() * 10000)}`,
-        title: "New Investigation",
-        investigator: "Admin",
-        description: "Auto-generated case room"
-      });
+      await axios.post(`${baseUrl}/api/cases`, formData);
       fetchCases();
     } catch (error) {
       console.error('Failed to initialize case:', error);
+      throw error;
     }
   };
 
@@ -145,6 +147,12 @@ const Investigations = () => {
           onUploadComplete={handleUploadComplete} 
         />
       )}
+
+      <CaseModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSave={handleSaveCase} 
+      />
     </div>
   );
 };

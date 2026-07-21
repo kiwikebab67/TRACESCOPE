@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, ShieldAlert, Cpu, HardDrive, Filter, Clock } from 'lucide-react';
+import { Activity, ShieldAlert, Cpu, HardDrive, Filter, Clock, UploadCloud } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
+import FileUpload from '../components/FileUpload';
 
 const Timeline = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const activeCaseId = localStorage.getItem('activeCaseId');
+
+  const fetchTimeline = async () => {
+    try {
+      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const res = await axios.get(`${baseUrl}/api/timeline`);
+      // Sort chronologically if time_created is sortable, here we just use the API order (which is all logs)
+      setLogs(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError(err);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTimeline = async () => {
-      try {
-        const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
-        const res = await axios.get(`${baseUrl}/api/timeline`);
-        // Sort chronologically if time_created is sortable, here we just use the API order (which is all logs)
-        setLogs(res.data);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
     fetchTimeline();
   }, []);
 
@@ -33,17 +39,23 @@ const Timeline = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto h-[calc(100vh-120px)]">
-      <div className="flex items-center justify-between">
+      <div className="mb-6 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
-            <Clock className="w-8 h-8 text-[var(--ts-blue)]" />
-            Event Timeline
-          </h1>
-          <p className="text-ts-text-muted mt-1">Chronological reconstruction of the attack chain across all forensic artifacts.</p>
+          <h2 className="text-3xl font-bold text-gradient mb-2 flex items-center gap-3">
+            <Clock className="text-ts-blue" /> 
+            EVENT TIMELINE
+          </h2>
+          <p className="text-ts-text-muted">Chronological reconstruction of the attack sequence.</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary py-2 px-4 flex items-center gap-2"><Filter className="w-4 h-4" /> Filter</button>
-        </div>
+        <button 
+          onClick={() => setIsUploadOpen(true)}
+          className="btn-primary flex items-center gap-2"
+          disabled={!activeCaseId}
+          title={!activeCaseId ? "Open a case first in Investigations" : "Upload Evidence"}
+        >
+          <UploadCloud className="w-4 h-4" />
+          Upload Evidence
+        </button>
       </div>
 
       <InfoBox 
@@ -91,6 +103,17 @@ const Timeline = () => {
           </div>
         )}
       </div>
+
+      {isUploadOpen && (
+        <FileUpload 
+          caseId={activeCaseId} 
+          onClose={() => setIsUploadOpen(false)} 
+          onUploadComplete={() => {
+            setIsUploadOpen(false);
+            fetchTimelineData();
+          }}
+        />
+      )}
     </div>
   );
 };

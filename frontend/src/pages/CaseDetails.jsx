@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, ShieldAlert, FileText, Activity, AlertTriangle, ShieldCheck, Search, Loader, Server, Terminal } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, FileText, Activity, AlertTriangle, ShieldCheck, Search, Loader, Server, Terminal, Edit2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import CaseModal from '../components/common/CaseModal';
 
 const CaseDetails = () => {
   const { caseId } = useParams();
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [threatIntel, setThreatIntel] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
+    localStorage.setItem('activeCaseId', caseId);
     fetchCaseDetails();
     fetchThreatIntel();
   }, [caseId]);
@@ -24,6 +27,18 @@ const CaseDetails = () => {
     } catch (error) {
       console.error('Failed to fetch case details:', error);
       setLoading(false);
+    }
+  };
+
+  const handleUpdateCase = async (formData) => {
+    try {
+      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      await axios.put(`${baseUrl}/api/cases/${caseId}`, formData);
+      await fetchCaseDetails();
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error('Failed to update case:', error);
+      throw error;
     }
   };
 
@@ -54,17 +69,6 @@ const CaseDetails = () => {
     return <div>Case not found.</div>;
   }
 
-  // Calculate Risk Metrics
-  const highRiskCount = caseData.analysis_results.filter(log => log.risk_level === 'High').length;
-  const mediumRiskCount = caseData.analysis_results.filter(log => log.risk_level === 'Medium').length;
-  const totalEvents = caseData.analysis_results.length;
-
-  const chartData = [
-    { name: 'High Risk', value: highRiskCount, color: '#ef4444' },
-    { name: 'Medium Risk', value: mediumRiskCount, color: '#f59e0b' },
-    { name: 'Low Risk', value: totalEvents - highRiskCount - mediumRiskCount, color: '#3b82f6' }
-  ];
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -78,6 +82,12 @@ const CaseDetails = () => {
               <span className="text-sm font-normal text-ts-text-muted bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
                 {caseData.case.investigator}
               </span>
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="p-1 text-ts-text-muted hover:text-ts-blue transition-colors"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
             </h1>
             <p className="text-sm text-ts-text-muted mt-1">{caseData.case.title}</p>
           </div>
@@ -221,6 +231,14 @@ const CaseDetails = () => {
           </table>
         </div>
       </div>
+      {isEditModalOpen && (
+        <CaseModal 
+          isOpen={isEditModalOpen} 
+          onClose={() => setIsEditModalOpen(false)} 
+          onSave={handleUpdateCase}
+          initialData={caseData.case}
+        />
+      )}
     </div>
   );
 };

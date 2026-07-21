@@ -198,6 +198,34 @@ def get_latest_malware():
         } for log in logs]
     })
 
+@app.route("/api/cases/<int:case_id>", methods=["PUT"])
+def update_case(case_id):
+    case = Case.query.get_or_404(case_id)
+    data = request.json
+    
+    if "title" in data:
+        case.title = data.get("title")
+    if "investigator" in data:
+        case.investigator = data.get("investigator")
+    if "description" in data:
+        case.description = data.get("description")
+    if "case_number" in data:
+        case.case_number = data.get("case_number")
+        
+    db.session.commit()
+    
+    return jsonify({
+        "status": "success",
+        "message": "Case updated successfully",
+        "case": {
+            "id": case.id,
+            "case_number": case.case_number,
+            "title": case.title,
+            "investigator": case.investigator,
+            "description": case.description
+        }
+    })
+
 @app.route("/api/cases/<int:case_id>")
 def case_details(case_id):
     case = Case.query.get_or_404(case_id)

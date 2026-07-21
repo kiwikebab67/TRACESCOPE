@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Network as NetworkIcon, Search, Download, AlertTriangle, ShieldAlert, FileText, ChevronRight } from 'lucide-react';
+import { Activity, ShieldAlert, Search, Download, UploadCloud, ChevronRight, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
+import FileUpload from '../components/FileUpload';
 
 const Network = () => {
   const [packets, setPackets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPacket, setSelectedPacket] = useState(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const activeCaseId = localStorage.getItem('activeCaseId');
+
+  const fetchPackets = async () => {
+    try {
+      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const res = await axios.get(`${baseUrl}/api/network`);
+      setPackets(res.data.packets);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchNetwork = async () => {
-      try {
-        const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
-        const res = await axios.get(`${baseUrl}/api/network`);
-        setPackets(res.data.packets);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
-    fetchNetwork();
+    fetchPackets();
   }, []);
 
   return (
@@ -29,12 +33,21 @@ const Network = () => {
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
-            <NetworkIcon className="w-8 h-8 text-[var(--ts-blue)]" />
+            <Activity className="w-8 h-8 text-[var(--ts-cyan)]" />
             Network Protocol Analyzer
           </h1>
-          <p className="text-ts-text-muted mt-1">Deep packet inspection and live traffic analysis.</p>
+          <p className="text-ts-text-muted mt-1">Deep packet inspection and connection visualization.</p>
         </div>
         <div className="flex gap-2">
+          <button 
+            onClick={() => setIsUploadOpen(true)}
+            className="btn-primary flex items-center gap-2"
+            disabled={!activeCaseId}
+            title={!activeCaseId ? "Open a case first in Investigations" : "Upload Evidence"}
+          >
+            <UploadCloud className="w-4 h-4" />
+            Upload Evidence
+          </button>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-ts-text-muted" />
             <input type="text" placeholder="Filter by IP, Protocol..." className="input-field pl-9 w-64" />
@@ -149,6 +162,17 @@ const Network = () => {
           </div>
         )}
       </div>
+
+      {isUploadOpen && (
+        <FileUpload 
+          caseId={activeCaseId} 
+          onClose={() => setIsUploadOpen(false)} 
+          onUploadComplete={() => {
+            setIsUploadOpen(false);
+            fetchPackets();
+          }}
+        />
+      )}
     </div>
   );
 };
