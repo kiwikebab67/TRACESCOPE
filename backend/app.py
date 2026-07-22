@@ -604,6 +604,21 @@ def upload_evidence(case_id):
                 db.session.add(db_log)
             db.session.commit()
             
+        elif filename.lower().endswith(('.dat', '.reg')):
+            parsed_events = parse_registry_hive(save_path)
+            for event in parsed_events:
+                db_log = ForensicLog(
+                    time_created=str(event.get('time_created', '')),
+                    event_id=int(event.get('event_id', 0)),
+                    source=str(event.get('source', '')),
+                    description=str(event.get('description', '')),
+                    risk_level=str(event.get('risk_level', 'Low')),
+                    tool_source="regripper",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
+            
         elif filename.lower().endswith(('.exe', '.dll', '.bin', '.sys')):
             malware_results = analyze_malware_file(save_path, filename)
             risk_level = "High" if malware_results['is_suspicious'] else "Low"
