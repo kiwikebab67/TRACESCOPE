@@ -57,6 +57,7 @@ def parse_evtx_log(filepath):
             
     # Fallback to Text Log Parser
     try:
+        generic_count = 0
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             for idx, line in enumerate(f):
                 line = line.strip()
@@ -76,6 +77,12 @@ def parse_evtx_log(filepath):
                 elif "success" in line_lower or "logged" in line_lower:
                     event_id = 4624
                     source = "Text Log Monitor"
+                
+                # Prevent database overload from padded/dummy generic logs
+                if event_id == 1000:
+                    generic_count += 1
+                    if generic_count > 500:
+                        continue # Skip appending to avoid massive DB insert delays
                 
                 events.append({
                     'event_id': event_id,
