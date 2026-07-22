@@ -320,6 +320,7 @@ def get_logs():
     
     return jsonify({
         "status": "success",
+        "current_evidence": logs[0].evidence.filename if logs else None,
         "analysis_logs": [{
             "id": l.id,
             "time_created": l.time_created,
@@ -343,6 +344,7 @@ def get_registry():
     
     return jsonify({
         "status": "success",
+        "current_evidence": logs[0].evidence.filename if logs else None,
         "registry_logs": [{
             "id": l.id,
             "time_created": l.time_created,
