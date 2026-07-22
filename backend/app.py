@@ -336,7 +336,10 @@ def get_registry():
     if not case_id:
         return jsonify({"status": "error", "message": "No Case ID provided."}), 400
     
-    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id, ForensicLog.tool_source == 'registry').order_by(ForensicLog.id.desc()).all()
+    logs = ForensicLog.query.join(Evidence).filter(
+        Evidence.case_id == case_id, 
+        ForensicLog.tool_source.in_(['registry', 'regripper'])
+    ).order_by(ForensicLog.id.desc()).all()
     
     return jsonify({
         "status": "success",
