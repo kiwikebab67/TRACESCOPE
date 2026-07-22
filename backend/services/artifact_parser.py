@@ -189,3 +189,59 @@ def parse_autopsy_disk(filepath):
         }
     ]
     return disk_files
+
+def parse_registry_hive(filepath):
+    """
+    Parses a Windows Registry Hive or .reg text file.
+    Extracts Run keys (persistence) and USBSTOR artifacts.
+    """
+    events = []
+    try:
+        with open(filepath, 'r', encoding='utf-16', errors='ignore') as f:
+            content = f.read()
+    except Exception:
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+        except Exception as e:
+            return [{"event_id": 999, "source": "Registry Error", "description": str(e), "risk_level": "High", "time_created": "N/A"}]
+
+    lines = content.split('\n')
+    current_key = ""
+    
+    for idx, line in enumerate(lines):
+        line = line.strip()
+        if not line: continue
+        
+        if line.startswith('[') and line.endswith(']'):
+            current_key = line[1:-1]
+            
+        elif current_key and "=" in line:
+            # We are inside a key and found a value
+            if "CurrentVersion\\Run" in current_key or "CurrentVersion\\RunOnce" in current_key:
+                events.append({
+                    "event_id": 5001,
+                    "source": "Registry: Persistence",
+                    "description": f"Found Auto-Run Key: [{current_key}] -> {line}",
+                    "risk_level": "High" if "temp" in line.lower() or "appdata" in line.lower() or ".ps1" in line.lower() else "Medium",
+                    "time_created": f"Line {idx}"
+                })
+            elif "USBSTOR" in current_key:
+                events.append({
+                    "event_id": 5002,
+                    "source": "Registry: USB Device",
+                    "description": f"USB Device Enumerated: [{current_key}] -> {line}",
+                    "risk_level": "Low",
+                    "time_created": f"Line {idx}"
+                })
+                
+    if not events:
+        events.append({
+            "event_id": 5000,
+            "source": "Registry: Scan",
+            "description": "No suspicious persistence or USB keys found.",
+            "risk_level": "Low",
+            "time_created": "N/A"
+        })
+        
+    return events

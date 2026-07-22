@@ -1,5 +1,5 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump
-from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk 
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive 
 import os
 import hashlib
 import json 
@@ -304,6 +304,46 @@ def get_network_pcap():
     
     return jsonify({"status": "success", "packets": packets})
 
+@app.route("/api/logs")
+def get_logs():
+    case_id = request.args.get('caseId')
+    if not case_id:
+        return jsonify({"status": "error", "message": "No Case ID provided."}), 400
+    
+    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id, ForensicLog.tool_source == 'logs').order_by(ForensicLog.id.desc()).all()
+    
+    return jsonify({
+        "status": "success",
+        "analysis_logs": [{
+            "id": l.id,
+            "time_created": l.time_created,
+            "event_id": l.event_id,
+            "source": l.source,
+            "description": l.description,
+            "risk_level": l.risk_level
+        } for l in logs]
+    })
+
+@app.route("/api/registry")
+def get_registry():
+    case_id = request.args.get('caseId')
+    if not case_id:
+        return jsonify({"status": "error", "message": "No Case ID provided."}), 400
+    
+    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id, ForensicLog.tool_source == 'registry').order_by(ForensicLog.id.desc()).all()
+    
+    return jsonify({
+        "status": "success",
+        "registry_logs": [{
+            "id": l.id,
+            "time_created": l.time_created,
+            "event_id": l.event_id,
+            "source": l.source,
+            "description": l.description,
+            "risk_level": l.risk_level
+        } for l in logs]
+    })
+
 @app.route("/api/memory/latest")
 def get_latest_memory():
     # Fetch latest volatility memory analysis logs
@@ -605,6 +645,21 @@ def upload_evidence(case_id):
                     description=vol['description'],
                     risk_level=vol['risk_level'],
                     tool_source="volatility",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
+
+        elif filename.lower().endswith(('.reg', '.dat')):
+            registry_events = parse_registry_hive(save_path)
+            for reg in registry_events:
+                db_log = ForensicLog(
+                    time_created=reg['time_created'],
+                    event_id=reg['event_id'],
+                    source=reg['source'],
+                    description=reg['description'],
+                    risk_level=reg['risk_level'],
+                    tool_source='registry',
                     evidence_id=new_evidence.id
                 )
                 db.session.add(db_log)

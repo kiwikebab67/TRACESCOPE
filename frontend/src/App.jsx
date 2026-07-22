@@ -14,6 +14,8 @@ import Timeline from './pages/Timeline';
 import Network from './pages/Network';
 import Memory from './pages/Memory';
 import IOCScanner from './pages/IOCScanner';
+import LogAnalysis from './pages/LogAnalysis';
+import RegistryAnalysis from './pages/RegistryAnalysis';
 
 function App() {
   // Simple auth state for MVP
@@ -48,8 +50,8 @@ function App() {
         
         {/* Scaffolded Routes (Under Construction) */}
         <Route path="/chain-of-custody" element={<ProtectedRoute><PlaceholderPage moduleName="Chain of Custody" /></ProtectedRoute>} />
-        <Route path="/registry" element={<ProtectedRoute><PlaceholderPage moduleName="Registry Analysis" /></ProtectedRoute>} />
-        <Route path="/logs" element={<ProtectedRoute><PlaceholderPage moduleName="Log Analysis" /></ProtectedRoute>} />
+        <Route path="/registry" element={<ProtectedRoute><RegistryAnalysis /></ProtectedRoute>} />
+        <Route path="/logs" element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>} />
         <Route path="/usb" element={<ProtectedRoute><PlaceholderPage moduleName="USB Analysis" /></ProtectedRoute>} />
         <Route path="/email" element={<ProtectedRoute><PlaceholderPage moduleName="Email Investigation" /></ProtectedRoute>} />
         <Route path="/browser" element={<ProtectedRoute><PlaceholderPage moduleName="Browser Artifacts" /></ProtectedRoute>} />
