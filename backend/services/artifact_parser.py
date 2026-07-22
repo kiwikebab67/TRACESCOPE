@@ -68,13 +68,13 @@ def parse_evtx_log(filepath):
                 event_id = 1000
                 source = "Text Logger"
                 
-                if "error" in line_lower or "failed" in line_lower or "unauthorized" in line_lower:
+                if "failed login" in line_lower or "unauthorized password" in line_lower:
                     event_id = 4625
                     source = "Text Audit Engine"
-                elif "critical" in line_lower or "cleared" in line_lower or "deleted" in line_lower:
+                elif "audit log was cleared" in line_lower:
                     event_id = 1102
                     source = "Text Audit Engine"
-                elif "success" in line_lower or "logged" in line_lower:
+                elif "logged in successfully" in line_lower:
                     event_id = 4624
                     source = "Text Log Monitor"
                 

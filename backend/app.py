@@ -140,11 +140,17 @@ def dashboard_stats():
 def manage_cases():
     if request.method == "POST":
         data = request.json
+        import uuid
+        from datetime import datetime
+        case_num = data.get("case_number")
+        if not case_num:
+            case_num = f"CS-{datetime.utcnow().year}-{str(uuid.uuid4())[:4].upper()}"
+            
         new_case = Case(
-            case_number=data.get("case_number"),
-            title=data.get("title"),
-            investigator=data.get("investigator"),
-            description=data.get("description")
+            case_number=case_num,
+            title=data.get("title", "Unnamed Investigation"),
+            investigator=data.get("investigator", "System Admin"),
+            description=data.get("description", "")
         )
         db.session.add(new_case)
         db.session.commit()
