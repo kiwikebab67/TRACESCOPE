@@ -266,11 +266,17 @@ def parse_email_artifact(filepath):
         sender = msg.get('from', 'Unknown Sender')
         date = msg.get('date', 'Unknown Date')
         
+        sender_intel = ""
+        if "paypal" in sender.lower() and "paypal.com" not in sender.lower():
+            sender_intel = "\n[THREAT INTEL] Suspicious spoofed sender domain mimicking legitimate financial institution."
+        elif "admin@" in sender.lower() or "security@" in sender.lower():
+            sender_intel = "\n[THREAT INTEL] Sender alias attempts to project false authority (Social Engineering)."
+
         events.append({
             "event_id": 6000,
             "source": f"Email Header",
-            "description": f"Subject: {subject}\nFrom: {sender}",
-            "risk_level": "Low",
+            "description": f"Subject: {subject}\nFrom: {sender}{sender_intel}",
+            "risk_level": "Medium" if sender_intel else "Low",
             "time_created": date
         })
         
@@ -282,11 +288,17 @@ def parse_email_artifact(filepath):
                     body += part.get_payload(decode=True).decode('utf-8', errors='ignore')
                 elif part.get_content_maintype() != 'multipart' and part.get_filename():
                     filename = part.get_filename()
+                    intel = ""
+                    if filename.lower().endswith(('.exe', '.dll', '.scr', '.vbs', '.js')):
+                        intel = "\n[THREAT INTEL] Executable or script attachment identified. High probability of staging payload or initial access dropper."
+                    elif filename.lower().endswith(('.zip', '.rar', '.7z')):
+                        intel = "\n[THREAT INTEL] Compressed archive. Often used to evade basic email gateway static analysis."
+                    
                     events.append({
                         "event_id": 6001,
                         "source": f"Email Attachment",
-                        "description": f"Found attachment: {filename}",
-                        "risk_level": "High" if filename.lower().endswith(('.exe', '.dll', '.zip', '.js', '.vbs', '.scr')) else "Medium",
+                        "description": f"Attachment: {filename}{intel}",
+                        "risk_level": "High" if intel and "Executable" in intel else "Medium",
                         "time_created": date
                     })
         else:
@@ -295,11 +307,17 @@ def parse_email_artifact(filepath):
         # Extract URLs
         urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', body)
         for url in set(urls):
+            url_intel = ""
+            if "token=" in url.lower() or "login" in url.lower() or "verify" in url.lower() or "secure" in url.lower():
+                url_intel = "\n[THREAT INTEL] URI contains credential harvesting keywords designed to mimic authentication portals."
+            if re.search(r'\d+\.\d+\.\d+\.\d+', url):
+                url_intel = "\n[THREAT INTEL] Raw IP address used in URI routing. Highly indicative of ephemeral malicious infrastructure bypassing DNS."
+                
             events.append({
                 "event_id": 6002,
                 "source": "Email URL",
-                "description": f"Found URL in body: {url}",
-                "risk_level": "Medium",
+                "description": f"Embedded Link: {url}{url_intel}",
+                "risk_level": "High" if url_intel else "Medium",
                 "time_created": date
             })
             
