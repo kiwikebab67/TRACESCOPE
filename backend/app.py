@@ -645,6 +645,10 @@ def upload_evidence(case_id):
                     eid = 0
 
                 risk_lvl, description_intel = evaluate_log_risk(eid, str(event.get('source', '')))
+                
+                raw_data = event.get('raw_data')
+                if raw_data:
+                    description_intel = f"{raw_data}\n\n[SYSTEM]: {description_intel}"
 
                 db_log = ForensicLog(
                     time_created=str(event.get('time_created', '')),

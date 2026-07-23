@@ -87,7 +87,8 @@ def parse_evtx_log(filepath):
                 events.append({
                     'event_id': event_id,
                     'source': source,
-                    'time_created': f"Line {idx + 1}"
+                    'time_created': f"Line {idx + 1}",
+                    'raw_data': line
                 })
     except Exception:
         pass
