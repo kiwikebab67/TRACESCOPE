@@ -252,3 +252,58 @@ def parse_registry_hive(filepath):
         })
         
     return events
+
+def parse_email_artifact(filepath):
+    import email
+    from email import policy
+    import re
+    events = []
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            msg = email.message_from_file(f, policy=policy.default)
+            
+        subject = msg.get('subject', 'No Subject')
+        sender = msg.get('from', 'Unknown Sender')
+        date = msg.get('date', 'Unknown Date')
+        
+        events.append({
+            "event_id": 6000,
+            "source": f"Email Header",
+            "description": f"Subject: {subject}\nFrom: {sender}",
+            "risk_level": "Low",
+            "time_created": date
+        })
+        
+        body = ""
+        if msg.is_multipart():
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type == 'text/plain':
+                    body += part.get_payload(decode=True).decode('utf-8', errors='ignore')
+                elif part.get_content_maintype() != 'multipart' and part.get_filename():
+                    filename = part.get_filename()
+                    events.append({
+                        "event_id": 6001,
+                        "source": f"Email Attachment",
+                        "description": f"Found attachment: {filename}",
+                        "risk_level": "High" if filename.lower().endswith(('.exe', '.dll', '.zip', '.js', '.vbs', '.scr')) else "Medium",
+                        "time_created": date
+                    })
+        else:
+            body = msg.get_payload(decode=True).decode('utf-8', errors='ignore')
+            
+        # Extract URLs
+        urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', body)
+        for url in set(urls):
+            events.append({
+                "event_id": 6002,
+                "source": "Email URL",
+                "description": f"Found URL in body: {url}",
+                "risk_level": "Medium",
+                "time_created": date
+            })
+            
+    except Exception as e:
+        events.append({"event_id": 999, "source": "Email Parse Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
+        
+    return events

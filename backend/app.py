@@ -1,5 +1,5 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump
-from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive 
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact
 import os
 import hashlib
 import json 
@@ -355,6 +355,55 @@ def get_registry():
         } for l in logs]
     })
 
+@app.route("/api/usb")
+def get_usb():
+    case_id = request.args.get('caseId')
+    if not case_id:
+        return jsonify({"status": "error", "message": "No Case ID provided."}), 400
+    
+    logs = ForensicLog.query.join(Evidence).filter(
+        Evidence.case_id == case_id, 
+        ForensicLog.source.like('%USB%')
+    ).order_by(ForensicLog.id.desc()).all()
+    
+    return jsonify({
+        "status": "success",
+        "current_evidence": logs[0].evidence.filename if logs else None,
+        "usb_logs": [{
+            "id": l.id,
+            "time_created": l.time_created,
+            "event_id": l.event_id,
+            "source": l.source,
+            "description": l.description,
+            "risk_level": l.risk_level
+        } for l in logs]
+    })
+
+@app.route("/api/email")
+def get_email():
+    case_id = request.args.get('caseId')
+    if not case_id:
+        return jsonify({"status": "error", "message": "No Case ID provided."}), 400
+    
+    logs = ForensicLog.query.join(Evidence).filter(
+        Evidence.case_id == case_id, 
+        ForensicLog.tool_source == 'email'
+    ).order_by(ForensicLog.id.desc()).all()
+    
+    return jsonify({
+        "status": "success",
+        "current_evidence": logs[0].evidence.filename if logs else None,
+        "email_logs": [{
+            "id": l.id,
+            "time_created": l.time_created,
+            "event_id": l.event_id,
+            "source": l.source,
+            "description": l.description,
+            "risk_level": l.risk_level
+        } for l in logs]
+    })
+
+
 @app.route("/api/memory/latest")
 def get_latest_memory():
     # Fetch latest volatility memory analysis logs
@@ -624,6 +673,20 @@ def upload_evidence(case_id):
                 db.session.add(db_log)
             db.session.commit()
             
+        elif filename.lower().endswith('.eml'):
+            parsed_events = parse_email_artifact(save_path)
+            for event in parsed_events:
+                db_log = ForensicLog(
+                    time_created=str(event.get('time_created', '')),
+                    event_id=int(event.get('event_id', 0)),
+                    source=str(event.get('source', '')),
+                    description=str(event.get('description', '')),
+                    risk_level=str(event.get('risk_level', 'Low')),
+                    tool_source="email",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
         elif filename.lower().endswith(('.exe', '.dll', '.bin', '.sys')):
             malware_results = analyze_malware_file(save_path, filename)
             risk_level = "High" if malware_results['is_suspicious'] else "Low"
