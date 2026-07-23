@@ -289,16 +289,21 @@ def parse_email_artifact(filepath):
                 elif part.get_content_maintype() != 'multipart' and part.get_filename():
                     filename = part.get_filename()
                     intel = ""
+                    risk = "Low"
                     if filename.lower().endswith(('.exe', '.dll', '.scr', '.vbs', '.js')):
                         intel = "\n[THREAT INTEL] Executable or script attachment identified. High probability of staging payload or initial access dropper."
+                        risk = "High"
                     elif filename.lower().endswith(('.zip', '.rar', '.7z')):
                         intel = "\n[THREAT INTEL] Compressed archive. Often used to evade basic email gateway static analysis."
+                        risk = "Medium"
+                    else:
+                        intel = "\n[THREAT INTEL] Standard document or media file format. No immediate executable threat detected."
                     
                     events.append({
                         "event_id": 6001,
                         "source": f"Email Attachment",
                         "description": f"Attachment: {filename}{intel}",
-                        "risk_level": "High" if intel and "Executable" in intel else "Medium",
+                        "risk_level": risk,
                         "time_created": date
                     })
         else:
@@ -308,16 +313,21 @@ def parse_email_artifact(filepath):
         urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', body)
         for url in set(urls):
             url_intel = ""
+            risk = "Low"
             if "token=" in url.lower() or "login" in url.lower() or "verify" in url.lower() or "secure" in url.lower():
                 url_intel = "\n[THREAT INTEL] URI contains credential harvesting keywords designed to mimic authentication portals."
-            if re.search(r'\d+\.\d+\.\d+\.\d+', url):
+                risk = "High"
+            elif re.search(r'\d+\.\d+\.\d+\.\d+', url):
                 url_intel = "\n[THREAT INTEL] Raw IP address used in URI routing. Highly indicative of ephemeral malicious infrastructure bypassing DNS."
+                risk = "High"
+            else:
+                url_intel = "\n[THREAT INTEL] URL structure appears benign. No obvious credential harvesting or IP-routing indicators detected."
                 
             events.append({
                 "event_id": 6002,
                 "source": "Email URL",
                 "description": f"Embedded Link: {url}{url_intel}",
-                "risk_level": "High" if url_intel else "Medium",
+                "risk_level": risk,
                 "time_created": date
             })
             
