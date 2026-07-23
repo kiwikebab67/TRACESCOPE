@@ -155,7 +155,7 @@ def analyze_memory_dump(filepath, filename):
             logs.append({
                 'event_id': 200 + idx,
                 'source': 'Memory: netscan',
-                'description': f'Extracted network artifact from memory: {ip}',
+                'description': f'Extracted network artifact from memory: {ip} [THREAT INTEL] Memory dump reveals active network connection to IP {ip}.',
                 'risk_level': 'Medium' if ip.startswith('192.') or ip.startswith('10.') else 'High',
                 'time_created': 'Offset: Dynamic'
             })
@@ -163,8 +163,8 @@ def analyze_memory_dump(filepath, filename):
         for idx, url in enumerate(list(found_urls)[:10]):
             logs.append({
                 'event_id': 300 + idx,
-                'source': 'Memory: pslist', # Changed from strings to pslist so it shows up in UI
-                'description': f'Extracted memory artifact (String/URL): {url}',
+                'source': 'Memory: pslist',
+                'description': f'Extracted memory artifact (String/URL): {url} [THREAT INTEL] Discovered suspicious URL string in memory space.',
                 'risk_level': 'High' if 'evil' in url else 'Medium',
                 'time_created': 'Offset: Dynamic'
             })
@@ -173,7 +173,7 @@ def analyze_memory_dump(filepath, filename):
             logs.append({
                 'event_id': 100 + idx,
                 'source': 'Memory: pslist',
-                'description': f'Running Process Identified: {proc} (PID: {1000 + idx*4})',
+                'description': f'Running Process Identified: {proc} (PID: {1000 + idx*4}) [THREAT INTEL] Target process {proc} identified running in memory dump.',
                 'risk_level': 'High' if proc.lower() in ['cmd.exe', 'powershell.exe'] else 'Low',
                 'time_created': 'Offset: Dynamic'
             })
@@ -182,7 +182,7 @@ def analyze_memory_dump(filepath, filename):
             logs.append({
                 'event_id': 400,
                 'source': 'Memory: malfind',
-                'description': f'Discovered {found_mz} hidden executable (MZ) headers embedded in raw memory. Possible process hollowing.',
+                'description': f'Discovered {found_mz} hidden executable (MZ) headers embedded in raw memory. Possible process hollowing. [THREAT INTEL] Memory analysis reveals embedded executables indicating advanced evasion techniques.',
                 'risk_level': 'High',
                 'time_created': 'Offset: Dynamic'
             })
@@ -191,7 +191,7 @@ def analyze_memory_dump(filepath, filename):
             logs.append({
                 'event_id': 100,
                 'source': 'Memory: scan',
-                'description': 'No significant network or executable artifacts found in the memory sample.',
+                'description': 'No significant network or executable artifacts found in the memory sample. [THREAT INTEL] Initial memory header scan did not reveal immediate high-risk indicators.',
                 'risk_level': 'Low',
                 'time_created': 'Offset: N/A'
             })
