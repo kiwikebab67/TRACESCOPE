@@ -45,19 +45,7 @@ const Navbar = ({ toggleSidebar }) => {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden lg:flex items-center gap-3 mr-4">
-           <div className="flex flex-col text-right">
-             <span className="text-xs font-semibold text-[var(--ts-text)] uppercase tracking-wider">Current Case</span>
-             <span className="text-xs text-[var(--ts-blue)] font-mono font-medium drop-shadow-[0_0_5px_var(--ts-glow)]">CS-2024-009</span>
-           </div>
-           <div className="h-8 w-px bg-[var(--ts-border)] mx-2"></div>
-           <div className="flex flex-col text-right">
-             <span className="text-xs font-semibold text-[var(--ts-text)] uppercase tracking-wider">System Status</span>
-             <span className="text-xs text-green-500 font-medium flex items-center gap-1 justify-end">
-               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span> ONLINE
-             </span>
-           </div>
-        </div>
+
 
         {/* Theme Toggle */}
         <button 

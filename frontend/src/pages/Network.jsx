@@ -1,25 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, ShieldAlert, Search, Download, UploadCloud, ChevronRight, FileText } from 'lucide-react';
+import { Activity, ShieldAlert, Search, Download, UploadCloud, ChevronRight, FileText, AlertTriangle, Terminal } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
 import FileUpload from '../components/FileUpload';
+
+const parseNetworkInfo = (info) => {
+  if (!info) return { text: '', threat: null, mitre: [], raw: null };
+  let text = info;
+  
+  let threat = null;
+  if (text.includes('[THREAT INTEL]')) {
+    const parts = text.split('[THREAT INTEL]');
+    const afterThreat = parts[1];
+    const nextBracketIndex = afterThreat.indexOf('[');
+    if (nextBracketIndex !== -1) {
+      threat = afterThreat.substring(0, nextBracketIndex).trim();
+      text = parts[0] + afterThreat.substring(nextBracketIndex);
+    } else {
+      threat = afterThreat.trim();
+      text = parts[0];
+    }
+  }
+
+  const mitre = [];
+  const mitreRegex = /\[MITRE (.*?)\]/g;
+  text = text.replace(mitreRegex, (match, p1) => {
+    mitre.push(p1);
+    return '';
+  });
+
+  let raw = null;
+  if (text.includes('[RAW LOG]')) {
+    const parts = text.split('[RAW LOG]');
+    raw = parts[1].trim();
+    text = parts[0];
+  }
+
+  return { text: text.trim(), threat, mitre, raw };
+};
 
 const Network = () => {
   const [packets, setPackets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPacket, setSelectedPacket] = useState(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [error, setError] = useState(null);
   const activeCaseId = localStorage.getItem('activeCaseId');
 
   const fetchPackets = async () => {
     try {
       const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
       const res = await axios.get(`${baseUrl}/api/network`);
-      setPackets(res.data.packets);
+      setPackets(res.data.packets || []);
+      if (res.data.status === 'error') {
+        setError(res.data.message);
+      } else {
+        setError(null);
+      }
       setLoading(false);
     } catch (err) {
       console.error(err);
+      setError("Failed to fetch network data.");
       setLoading(false);
     }
   };
@@ -73,9 +115,15 @@ const Network = () => {
             <div className="col-span-1">Length</div>
             <div className="col-span-4">Info</div>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar relative">
             {loading ? (
               <div className="p-8 text-center text-ts-blue animate-pulse">Capturing packets...</div>
+            ) : packets.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 opacity-50">
+                <ShieldAlert className="w-16 h-16 text-ts-text-muted mb-4" />
+                <h2 className="text-xl font-bold mb-2">No Network Traffic Found</h2>
+                <p className="text-ts-text-muted text-center max-w-md">{error || "Please upload a .pcap file to begin protocol analysis."}</p>
+              </div>
             ) : (
               packets.map((p) => (
                 <div 
@@ -95,7 +143,7 @@ const Network = () => {
                   <div className="col-span-1 text-ts-text-muted">{p.length}</div>
                   <div className="col-span-4 truncate text-xs flex items-center gap-2">
                     {p.risk === 'High' && <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />}
-                    {p.info}
+                    {parseNetworkInfo(p.info).text}
                   </div>
                 </div>
               ))
@@ -114,16 +162,30 @@ const Network = () => {
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar text-sm">
-              {selectedPacket.risk === 'High' && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
-                  <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-red-500 text-xs uppercase mb-1">Threat Indicator Match</h4>
-                    <p className="text-xs text-red-200">{selectedPacket.note || "Suspicious signature detected in payload."}</p>
-                  </div>
-                </div>
-              )}
-              
+              {(() => {
+                const { text, threat, mitre, raw } = parseNetworkInfo((selectedPacket.info || "") + " " + (selectedPacket.note || ""));
+                return (
+                  <>
+                    {(threat || selectedPacket.risk === 'High') && (
+                      <div className="mb-4 p-3 bg-red-950/40 border border-red-500/40 rounded-lg flex items-start gap-3">
+                        <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="font-bold text-red-500 text-xs uppercase tracking-wider mb-1">Threat Intelligence</h4>
+                          <p className="text-xs text-red-200">{threat || selectedPacket.note || "Suspicious signature detected in payload."}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {mitre.length > 0 && (
+                      <div className="mb-4 flex gap-2 flex-wrap">
+                        {mitre.map(m => (
+                          <span key={m} className="bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                            MITRE {m}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center gap-1 font-bold text-[var(--ts-text)] mb-1 cursor-pointer hover:text-[var(--ts-blue)]">
@@ -157,7 +219,25 @@ const Network = () => {
                     0030  {selectedPacket.risk === 'High' ? <span className="text-red-500 font-bold bg-red-500/20 px-1">6d 61 6c 77 61 72 65</span> : "00 00 00 00 00 00 00" } 01 03 03 07<br/>
                   </div>
                 </div>
+                
+                {raw && (
+                  <div className="mt-4 border border-[var(--ts-border)] rounded-lg overflow-hidden">
+                    <details className="group">
+                      <summary className="w-full flex items-center gap-2 p-2 bg-black/60 hover:bg-black/80 text-xs text-gray-400 cursor-pointer list-none transition-colors">
+                        <Terminal className="w-4 h-4 text-[var(--ts-blue)]" />
+                        <span>View Raw Artifact</span>
+                        <ChevronRight className="w-4 h-4 ml-auto group-open:rotate-90 transition-transform" />
+                      </summary>
+                      <div className="p-3 bg-black/90 font-mono text-[11px] text-[var(--ts-cyan)] break-all whitespace-pre-wrap">
+                        {raw}
+                      </div>
+                    </details>
+                  </div>
+                )}
               </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}

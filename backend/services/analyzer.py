@@ -20,15 +20,18 @@ def evaluate_log_risk(event_id, source):
     event_id = int(event_id)
     
     risk_mapping = {
-        1102: ("High", "Audit log cleared. This is a critical indicator of defense evasion / anti-forensics activity."),
-        4625: ("Medium", "Failed account logon attempt. Possible credential brute-forcing activity."),
-        4624: ("Low", "Successful account logon. Standard administrative or user activity."),
-        4720: ("Medium", "A user account was created. Verify if this was authorized access control modification."),
-        4722: ("Medium", "A user account was enabled. Potential persistence mechanism creation."),
-        4732: ("High", "A member was added to a security-enabled local group (e.g., Administrators). Privileged escalation indicator."),
-        7045: ("High", "A new system service was installed. Verify for potential persistence (malware running as a service)."),
-        4697: ("High", "A service was installed in the system. Often used by attackers to establish persistent access."),
-        4688: ("Low", "A new process has been created. standard process creation log.")
+        1102: ("High", "Audit log cleared. This is a critical indicator of defense evasion / anti-forensics activity. [MITRE T1070.001 - Clear Windows Event Logs]"),
+        4625: ("Medium", "Failed account logon attempt. Possible credential brute-forcing activity. [MITRE T1110 - Brute Force]"),
+        4624: ("Low", "Successful account logon. Standard administrative or user activity. [MITRE T1078 - Valid Accounts]"),
+        4720: ("Medium", "A user account was created. Verify if this was authorized access control modification. [MITRE T1136 - Create Account]"),
+        4722: ("Medium", "A user account was enabled. Potential persistence mechanism creation. [MITRE T1098 - Account Manipulation]"),
+        4732: ("High", "A member was added to a security-enabled local group (e.g., Administrators). Privileged escalation indicator. [MITRE T1098 - Account Manipulation]"),
+        7045: ("High", "A new system service was installed. Verify for potential persistence (malware running as a service). [MITRE T1543.003 - Windows Service]"),
+        4697: ("High", "A service was installed in the system. Often used by attackers to establish persistent access. [MITRE T1543.003 - Windows Service]"),
+        4688: ("Low", "A new process has been created. standard process creation log. [MITRE T1059 - Command and Scripting Interpreter]"),
+        2003: ("Low", "USB device plugged in or DriverFrameworks operation. [MITRE T1091 - Replication Through Removable Media]"),
+        10000: ("Low", "USB UMDF Host Process event. Potential removable media insertion. [MITRE T1091 - Replication Through Removable Media]"),
+        400: ("Low", "Kernel-PnP Device Configuration event (often USB). [MITRE T1091 - Replication Through Removable Media]")
     }
     
     if event_id in risk_mapping:
@@ -36,12 +39,15 @@ def evaluate_log_risk(event_id, source):
     
     source_lower = source.lower()
     if "mimikatz" in source_lower or "cobaltstrike" in source_lower or "metasploit" in source_lower:
-        return ("High", f"Known offensive security tool signature detected in log source: {source}")
+        return ("High", f"Known offensive security tool signature detected in log source: {source} [MITRE T1003 - OS Credential Dumping]")
     
     if "powershell" in source_lower:
         if event_id in [4103, 4104]:
-            return ("Medium", "PowerShell script block logging captured execution. Review script block text for commands.")
-        return ("Low", f"PowerShell log event {event_id} recorded.")
+            return ("Medium", "PowerShell script block logging captured execution. Review script block text for commands. [MITRE T1059.001 - PowerShell]")
+        return ("Low", f"PowerShell log event {event_id} recorded. [MITRE T1059.001 - PowerShell]")
+        
+    if "usb" in source_lower:
+        return ("Low", f"USB Removable Media artifact identified in log source. [MITRE T1091 - Replication Through Removable Media]")
         
     return ("Low", f"Log event parsed from source {source}. No immediate high-risk indicators found.")
 

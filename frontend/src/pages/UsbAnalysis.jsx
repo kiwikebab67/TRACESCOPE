@@ -99,7 +99,7 @@ const LogEntry = ({ log }) => {
   );
 };
 
-const RegistryAnalysis = () => {
+const UsbAnalysis = () => {
   const [logs, setLogs] = useState([]);
   const [currentEvidence, setCurrentEvidence] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +107,7 @@ const RegistryAnalysis = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const activeCaseId = localStorage.getItem('activeCaseId');
 
-  const fetchRegistry = async () => {
+  const fetchUsb = async () => {
     if (!activeCaseId) {
       setLoading(false);
       return;
@@ -115,9 +115,9 @@ const RegistryAnalysis = () => {
     
     try {
       const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
-      const res = await axios.get(`${baseUrl}/api/registry?caseId=${activeCaseId}`);
+      const res = await axios.get(`${baseUrl}/api/usb?caseId=${activeCaseId}`);
       if (res.data.status === 'success') {
-        setLogs(res.data.registry_logs || []);
+        setLogs(res.data.usb_logs || []);
         setCurrentEvidence(res.data.current_evidence);
         setError(null);
       } else {
@@ -126,13 +126,13 @@ const RegistryAnalysis = () => {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch registry logs.");
+      setError("Failed to fetch USB logs.");
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRegistry();
+    fetchUsb();
   }, [activeCaseId]);
 
   return (
@@ -140,10 +140,10 @@ const RegistryAnalysis = () => {
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
-            <Database className="w-8 h-8 text-[var(--ts-blue)]" />
-            Registry Analysis
+            <Usb className="w-8 h-8 text-[var(--ts-blue)]" />
+            USB Analysis
           </h1>
-          <p className="text-ts-text-muted mt-1">Extract malware persistence (Run keys) and system configurations.</p>
+          <p className="text-ts-text-muted mt-1">Track unauthorized USB insertions and historical device records.</p>
         </div>
         <div className="flex gap-2 items-center">
           <button 
@@ -160,7 +160,7 @@ const RegistryAnalysis = () => {
 
       <InfoBox 
         title="What does this do?" 
-        description="The Registry Engine parses Windows Hive files (.reg, .dat) to automatically locate malware persistence mechanisms like Auto-Run keys." 
+        description="The USB Engine parses Windows Registry Hives (.reg, .dat) specifically for USBSTOR keys to automatically locate records of unauthorized USB devices previously plugged into the system." 
       />
 
       <div className="flex-1 glass-panel flex flex-col min-h-0 relative overflow-hidden">
@@ -181,7 +181,7 @@ const RegistryAnalysis = () => {
         
         <div className="flex-1 overflow-y-auto p-6 font-mono text-sm bg-black/40 custom-scrollbar">
           {loading ? (
-            <div className="text-[var(--ts-blue)] animate-pulse">Parsing Registry Hives...</div>
+            <div className="text-[var(--ts-blue)] animate-pulse">Parsing USB Devices...</div>
           ) : (
             <div className="space-y-4">
               {logs.map((log, i) => (
@@ -189,7 +189,7 @@ const RegistryAnalysis = () => {
               ))}
               {logs.length === 0 && (
                 <div className="text-gray-500 italic text-center mt-10">
-                  {error || "No registry artifacts found. Please upload a .reg or .dat file to begin analysis."}
+                  {error || "No USB artifacts found. Please upload a .reg or .dat file to begin analysis."}
                 </div>
               )}
             </div>
@@ -203,7 +203,7 @@ const RegistryAnalysis = () => {
           onClose={() => setIsUploadOpen(false)} 
           onUploadComplete={() => {
             setIsUploadOpen(false);
-            fetchRegistry();
+            fetchUsb();
           }}
         />
       )}
@@ -211,4 +211,4 @@ const RegistryAnalysis = () => {
   );
 };
 
-export default RegistryAnalysis;
+export default UsbAnalysis;

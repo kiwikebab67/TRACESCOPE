@@ -10,6 +10,7 @@ const Memory = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pslist');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [error, setError] = useState(null);
   const activeCaseId = localStorage.getItem('activeCaseId');
 
   const fetchMemory = async () => {
@@ -17,9 +18,15 @@ const Memory = () => {
       const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
       const res = await axios.get(`${baseUrl}/api/memory/latest`);
       setLogs(res.data.analysis_logs || []);
+      if (res.data.status === 'error') {
+        setError(res.data.message);
+      } else {
+        setError(null);
+      }
       setLoading(false);
     } catch (err) {
       console.error(err);
+      setError("Failed to fetch memory data.");
       setLoading(false);
     }
   };
@@ -42,7 +49,17 @@ const Memory = () => {
           </h1>
           <p className="text-ts-text-muted mt-1">Deep analysis of physical memory dumps for advanced persistent threats.</p>
         </div>
-        <div className="flex bg-black/40 p-1 rounded-lg border border-[var(--ts-border)]">
+        <div className="flex gap-2 items-center">
+          <button 
+            onClick={() => setIsUploadOpen(true)}
+            className="btn-primary flex items-center gap-2 mr-4"
+            disabled={!activeCaseId}
+            title={!activeCaseId ? "Open a case first in Investigations" : "Upload Evidence"}
+          >
+            <UploadCloud className="w-4 h-4" />
+            Upload Evidence
+          </button>
+          <div className="flex bg-black/40 p-1 rounded-lg border border-[var(--ts-border)]">
           <button onClick={() => setActiveTab('pslist')} className={clsx("px-4 py-2 rounded text-sm font-bold transition-all flex items-center gap-2", activeTab === 'pslist' ? "bg-[var(--ts-blue)] text-white shadow-[0_0_10px_rgba(0,240,255,0.3)]" : "text-ts-text-muted hover:text-white")}>
             <Terminal className="w-4 h-4" /> PsList
           </button>
@@ -52,6 +69,7 @@ const Memory = () => {
           <button onClick={() => setActiveTab('malfind')} className={clsx("px-4 py-2 rounded text-sm font-bold transition-all flex items-center gap-2", activeTab === 'malfind' ? "bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)]" : "text-ts-text-muted hover:text-white")}>
             <ServerCrash className="w-4 h-4" /> Malfind (Injections)
           </button>
+        </div>
         </div>
       </div>
 
@@ -86,7 +104,9 @@ const Memory = () => {
                 </div>
               ))}
               {(activeTab === 'pslist' ? pslist : activeTab === 'netscan' ? netscan : malfind).length === 0 && (
-                <div className="text-gray-500 italic">No artifacts found for this plugin.</div>
+                <div className="text-gray-500 italic text-center mt-10">
+                  {error || "No artifacts found for this plugin. Please upload a .raw or .mem memory dump to begin analysis."}
+                </div>
               )}
             </div>
           )}

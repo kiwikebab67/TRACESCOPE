@@ -78,3 +78,6 @@
 body {
   @apply bg-[var(--ts-bg)] text-[var(--ts-text)] transition-colors duration-300;
 }
+
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(50%); transform: none; box-shadow: none; }
+

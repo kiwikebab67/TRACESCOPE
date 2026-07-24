@@ -16,6 +16,8 @@ import Memory from './pages/Memory';
 import IOCScanner from './pages/IOCScanner';
 import LogAnalysis from './pages/LogAnalysis';
 import RegistryAnalysis from './pages/RegistryAnalysis';
+import UsbAnalysis from './pages/UsbAnalysis';
+import EmailInvestigation from './pages/EmailInvestigation';
 
 function App() {
   // Simple auth state for MVP
@@ -52,8 +54,8 @@ function App() {
         <Route path="/chain-of-custody" element={<ProtectedRoute><PlaceholderPage moduleName="Chain of Custody" /></ProtectedRoute>} />
         <Route path="/registry" element={<ProtectedRoute><RegistryAnalysis /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>} />
-        <Route path="/usb" element={<ProtectedRoute><PlaceholderPage moduleName="USB Analysis" /></ProtectedRoute>} />
-        <Route path="/email" element={<ProtectedRoute><PlaceholderPage moduleName="Email Investigation" /></ProtectedRoute>} />
+        <Route path="/usb" element={<ProtectedRoute><UsbAnalysis /></ProtectedRoute>} />
+        <Route path="/email" element={<ProtectedRoute><EmailInvestigation /></ProtectedRoute>} />
         <Route path="/browser" element={<ProtectedRoute><PlaceholderPage moduleName="Browser Artifacts" /></ProtectedRoute>} />
         <Route path="/threat-intel" element={<ProtectedRoute><PlaceholderPage moduleName="Threat Intelligence" /></ProtectedRoute>} />
         <Route path="/hashes" element={<ProtectedRoute><PlaceholderPage moduleName="Hash Database" /></ProtectedRoute>} />

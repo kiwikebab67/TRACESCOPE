@@ -361,9 +361,13 @@ def get_usb():
     if not case_id:
         return jsonify({"status": "error", "message": "No Case ID provided."}), 400
     
+    from sqlalchemy import or_
     logs = ForensicLog.query.join(Evidence).filter(
-        Evidence.case_id == case_id, 
-        ForensicLog.source.like('%USB%')
+        Evidence.case_id == case_id,
+        or_(
+            ForensicLog.source.like('%USB%'),
+            ForensicLog.event_id.in_([2003, 10000, 400])
+        )
     ).order_by(ForensicLog.id.desc()).all()
     
     return jsonify({

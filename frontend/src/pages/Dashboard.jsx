@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import { 
   ShieldAlert, 
@@ -18,32 +19,115 @@ import {
   Pie, 
   Cell, 
   ResponsiveContainer, 
-  LineChart, 
-  Line, 
+  AreaChart, 
+  Area, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip 
 } from 'recharts';
-import ThreatMap from '../components/dashboard/ThreatMap';
+import NodeGraph from '../components/dashboard/NodeGraph';
 
 // Data fetched dynamically from backend
 
-const StatCard = ({ title, value, icon: Icon, colorClass, subtitle }) => (
-  <div className="glass-panel p-5 relative overflow-hidden group">
-    <div className={`absolute top-0 left-0 w-1 h-full ${colorClass}`}></div>
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-xs font-bold text-ts-text-muted uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-[var(--ts-text)] text-gradient">{value}</h3>
-        {subtitle && <p className="text-xs text-ts-text-muted mt-2">{subtitle}</p>}
-      </div>
-      <div className={`p-3 rounded-lg bg-[var(--ts-bg)] text-[var(--ts-text-muted)] group-hover:scale-110 group-hover:text-[var(--ts-blue)] transition-all`}>
-        <Icon className="w-6 h-6" />
-      </div>
+// Hook: animate a number counting up from 0
+const useCountUp = (target, duration = 1200) => {
+  const [count, setCount] = useState(0);
+  const prevTarget = useRef(0);
+  useEffect(() => {
+    if (target === prevTarget.current) return;
+    const start = 0;
+    const end = typeof target === 'number' ? target : parseFloat(target) || 0;
+    if (isNaN(end)) { setCount(target); return; }
+    let startTime = null;
+    const step = (ts) => {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setCount(Math.round(start + (end - start) * eased));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    prevTarget.current = target;
+  }, [target, duration]);
+  return count;
+};
+
+// Mini animated sparkline bar
+const AnimatedSparkline = ({ colorClass }) => {
+  const bars = [40, 65, 45, 80, 55, 70, 90, 60, 75, 50, 85, 65];
+  return (
+    <div className="flex items-end gap-[3px] h-4 mt-3 opacity-60 group-hover:opacity-100 transition-opacity">
+      {bars.map((h, i) => (
+        <motion.div
+          key={i}
+          className={`w-[4px] rounded-full ${colorClass}`}
+          initial={{ height: 0 }}
+          animate={{ height: `${h}%` }}
+          transition={{ delay: i * 0.05, duration: 0.5, ease: 'easeOut' }}
+        />
+      ))}
     </div>
-  </div>
-);
+  );
+};
+
+const StatCard = ({ title, value, icon: Icon, colorClass, subtitle }) => {
+  // Parse numeric part for counting animation
+  const numericMatch = String(value).match(/^(\d+)(.*)$/);
+  const numericVal = numericMatch ? parseInt(numericMatch[1], 10) : null;
+  const suffix = numericMatch ? numericMatch[2] : '';
+  const animatedCount = useCountUp(numericVal ?? 0);
+
+  return (
+    <motion.div
+      className="glass-panel p-5 relative overflow-hidden group cursor-default"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ scale: 1.02 }}
+      style={{ isolation: 'isolate' }}
+    >
+      {/* Pulsing glow border on hover */}
+      <div className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: 'none',
+          boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, currentColor 20%, transparent), 0 0 20px -4px color-mix(in srgb, currentColor 30%, transparent)`,
+        }}
+      />
+      <div
+        className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 pointer-events-none"
+        style={{
+          animation: 'statcard-glow-pulse 2s ease-in-out infinite',
+        }}
+      />
+      <style>{`
+        @keyframes statcard-glow-pulse {
+          0%, 100% { box-shadow: 0 0 15px -5px rgba(59,130,246,0.3); }
+          50% { box-shadow: 0 0 25px -3px rgba(59,130,246,0.5); }
+        }
+      `}</style>
+
+      <div className={`absolute top-0 left-0 w-1 h-full ${colorClass}`}></div>
+      <div className="flex justify-between items-start">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-ts-text-muted uppercase tracking-wider mb-1">{title}</p>
+          <h3 className="text-2xl font-bold text-[var(--ts-text)] text-gradient">
+            {numericVal !== null ? `${animatedCount}${suffix}` : value}
+          </h3>
+          {subtitle && <p className="text-xs text-ts-text-muted mt-2">{subtitle}</p>}
+          <AnimatedSparkline colorClass={colorClass} />
+        </div>
+        <motion.div
+          className={`p-3 rounded-lg bg-[var(--ts-bg)] text-[var(--ts-text-muted)] group-hover:text-[var(--ts-blue)] transition-colors`}
+          whileHover={{ rotate: [0, -10, 10, -5, 5, 0], scale: 1.15 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Icon className="w-6 h-6" />
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -55,6 +139,27 @@ const Dashboard = () => {
     evidence_data: [],
     recent_activities: []
   });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newCaseData, setNewCaseData] = useState({ title: '', description: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCreateCase = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const response = await axios.post(`${baseUrl}/api/cases`, newCaseData);
+      
+      // Update local storage and reload to switch context to new case
+      localStorage.setItem('activeCaseId', response.data.case_id);
+      window.location.href = `/investigations/${response.data.case_id}`;
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create new investigation.");
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -76,7 +181,16 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold text-gradient">Command Center</h1>
+          <h1 className="text-2xl font-bold text-gradient flex items-center gap-3">
+            Command Center
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              Live
+            </span>
+          </h1>
           <p className="text-sm text-ts-text-muted mt-1">Overview of active investigations and system telemetry.</p>
         </div>
         <div className="flex gap-4 relative z-10">
@@ -86,14 +200,73 @@ const Dashboard = () => {
           >
             <FileText className="w-4 h-4" /> Export Report
           </button>
-          <button className="btn-primary py-2 px-4 flex items-center gap-2 shadow-[0_0_15px_rgba(255,0,60,0.4)]">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary py-2 px-4 flex items-center gap-2 shadow-[0_0_15px_rgba(255,0,60,0.4)] hover:shadow-[0_0_25px_rgba(255,0,60,0.6)] transition-shadow"
+          >
             <ShieldAlert className="w-4 h-4" /> New Investigation
           </button>
         </div>
       </div>
       
-      {/* Global Threat Map */}
-      <ThreatMap />
+      {/* Global Threat Map - Replaced with Cybernetic Node Graph */}
+      <NodeGraph />
+
+      {/* New Investigation Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-panel w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-ts-text-muted hover:text-ts-text"
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-bold text-gradient mb-4 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-ts-red" />
+              Initialize Investigation
+            </h2>
+            <form onSubmit={handleCreateCase} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-ts-text-muted uppercase mb-1">Case Title</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newCaseData.title}
+                  onChange={e => setNewCaseData({...newCaseData, title: e.target.value})}
+                  className="w-full bg-[var(--ts-bg)] border border-[var(--ts-border)] text-ts-text rounded px-3 py-2 text-sm focus:outline-none focus:border-ts-blue"
+                  placeholder="e.g., Ransomware Outbreak Q3"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-ts-text-muted uppercase mb-1">Description (Optional)</label>
+                <textarea 
+                  value={newCaseData.description}
+                  onChange={e => setNewCaseData({...newCaseData, description: e.target.value})}
+                  className="w-full bg-[var(--ts-bg)] border border-[var(--ts-border)] text-ts-text rounded px-3 py-2 text-sm focus:outline-none focus:border-ts-blue h-24 resize-none"
+                  placeholder="Brief context about the incident..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm text-ts-text-muted hover:text-ts-text font-medium"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="btn-primary py-2 px-6 shadow-[0_0_15px_rgba(255,0,60,0.4)] flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Initializing...' : 'Deploy Workspace'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Emergency Helpline Banner */}
       <div className="glass-panel p-4 flex flex-col md:flex-row items-center justify-between border-l-4 border-l-orange-500 bg-orange-500/5 shadow-sm gap-4">
@@ -158,15 +331,21 @@ const Dashboard = () => {
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.timeline_data}>
+              <AreaChart data={stats.timeline_data}>
+                <defs>
+                  <linearGradient id="areaGradientBlue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                 />
-                <Line type="monotone" dataKey="events" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Area type="monotone" dataKey="events" stroke="#3b82f6" strokeWidth={3} fill="url(#areaGradientBlue)" dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -185,6 +364,9 @@ const Dashboard = () => {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
+                  animationBegin={0}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
                 >
                   {stats.evidence_data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -232,20 +414,20 @@ const Dashboard = () => {
             <tbody className="divide-y divide-[var(--ts-border)]">
               {stats.recent_activities.length > 0 ? (
                 stats.recent_activities.map((act) => (
-                  <tr key={act.id} className="hover:bg-[var(--ts-bg)] transition-colors">
+                  <tr key={act.id} className="hover:bg-[var(--ts-bg)] transition-all duration-200 hover:scale-[1.005] hover:border-l-2 hover:border-l-[var(--ts-blue)] hover:shadow-sm" style={{ transformOrigin: 'left center' }}>
                     <td className="px-5 py-3 text-ts-text-muted whitespace-nowrap">{act.time}</td>
                     <td className="px-5 py-3 font-medium">{act.investigator}</td>
                     <td className="px-5 py-3">{act.action}</td>
                     <td className="px-5 py-3 font-mono text-xs">{act.target}</td>
                     <td className="px-5 py-3 text-right">
                       {act.status === 'High' && (
-                        <span className="badge bg-red-100 text-red-700">Alert</span>
+                        <span className="badge bg-red-100 text-red-700" style={{ boxShadow: '0 0 8px 1px rgba(239,68,68,0.35)' }}>Alert</span>
                       )}
                       {act.status === 'Medium' && (
-                        <span className="badge bg-yellow-100 text-yellow-700">Warning</span>
+                        <span className="badge bg-yellow-100 text-yellow-700" style={{ boxShadow: '0 0 8px 1px rgba(234,179,8,0.35)' }}>Warning</span>
                       )}
                       {act.status === 'Low' && (
-                        <span className="badge bg-green-100 text-green-700">Logged</span>
+                        <span className="badge bg-green-100 text-green-700" style={{ boxShadow: '0 0 8px 1px rgba(34,197,94,0.35)' }}>Logged</span>
                       )}
                     </td>
                   </tr>

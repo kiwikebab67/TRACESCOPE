@@ -22,10 +22,11 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
     onDrop,
     maxFiles: 1,
     accept: {
-      'application/octet-stream': ['.raw', '.dmp', '.mem', '.bin', '.exe', '.dll', '.sys'],
+      'application/octet-stream': ['.raw', '.dmp', '.mem', '.bin', '.exe', '.dll', '.sys', '.dat'],
       'application/vnd.tcpdump.pcap': ['.pcap', '.cap'],
       'text/xml': ['.evtx'],
-      'text/plain': ['.txt', '.log']
+      'message/rfc822': ['.eml'],
+      'text/plain': ['.txt', '.log', '.reg']
     }
   });
 
@@ -94,7 +95,7 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
                 {isDragActive ? "Drop the file here..." : "Drag & drop an artifact, or click to select"}
               </p>
               <p className="text-xs text-ts-text-muted mt-2">
-                Supported: .raw, .pcap, .evtx, .exe, .dll, .txt
+                Supported: .raw, .mem, .pcap, .cap, .evtx, .exe, .dll, .txt, .reg, .dat, .eml
               </p>
             </div>
           ) : (
@@ -105,7 +106,11 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <h4 className="text-sm font-semibold text-ts-text truncate" title={file.name}>{file.name}</h4>
-                  <p className="text-xs text-ts-text-muted">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  <p className="text-xs text-ts-text-muted">{
+                    file.size < 1024 * 1024 
+                      ? (file.size / 1024).toFixed(1) + ' KB'
+                      : (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+                  }</p>
                   
                   {uploading && (
                     <div className="mt-3">
