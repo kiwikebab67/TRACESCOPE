@@ -87,7 +87,7 @@ const TimelineNode = ({ log, i }) => {
         )}
 
         <div className="mt-3 flex gap-2 mb-3">
-          <span className="px-2 py-1 text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">Case: {log.case_number}</span>
+          <span className="px-2 py-1 text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">File: {log.evidence_file}</span>
           <span className="px-2 py-1 text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">EID: {log.event_id}</span>
         </div>
 

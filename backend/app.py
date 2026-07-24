@@ -648,7 +648,8 @@ def upload_evidence(case_id):
                 except (ValueError, TypeError):
                     eid = 0
 
-                risk_lvl, description_intel = evaluate_log_risk(eid, str(event.get('source', '')))
+                source_combined = str(event.get('source', '')) + " " + str(event.get('raw_data', ''))
+                risk_lvl, description_intel = evaluate_log_risk(eid, source_combined)
                 
                 raw_data = event.get('raw_data')
                 if raw_data:
