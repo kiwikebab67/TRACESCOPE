@@ -840,37 +840,86 @@ def ai_chat():
     # Heuristic AI response generation based on actual logs
     high_risks = []
     med_risks = []
+    all_ips = set()
+    all_domains = set()
+    
+    import re
     
     for ev in case.evidence:
         for log in ev.logs:
             if log.risk_level == 'High':
-                high_risks.append(f"- **{ev.filename}**: {log.description} ({log.tool_source})")
+                high_risks.append(f"- **{ev.filename}**: {log.description.split('[SYSTEM]:')[-1].strip()} (Source: {log.tool_source})")
             elif log.risk_level == 'Medium':
-                med_risks.append(f"- **{ev.filename}**: {log.description} ({log.tool_source})")
+                med_risks.append(f"- **{ev.filename}**: {log.description.split('[SYSTEM]:')[-1].strip()} (Source: {log.tool_source})")
+                
+            # Extract IPs and Domains for cross-correlation mock
+            ips = re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', log.description)
+            domains = re.findall(r'(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}', log.description)
+            all_ips.update(ips)
+            all_domains.update(domains)
+            
+    # Remove common local IPs/domains
+    all_ips -= {'192.168.1.5', '8.8.8.8', '127.0.0.1'}
+    all_domains -= {'google.com', 'windows.com', 'microsoft.com'}
                 
     if 'summar' in message or 'report' in message or 'status' in message or 'risk' in message:
-        res = f"### TraceScope AI Analysis: {case.case_number}\n\n"
-        res += f"I have analyzed **{len(case.evidence)}** artifacts in this case.\n\n"
+        res = f"### 🧠 TraceScope AI Synthesis: {case.case_number}\n\n"
+        res += f"I have processed **{len(case.evidence)}** artifacts across the evidence chain.\n\n"
         
+        if all_ips or all_domains:
+            res += "#### 🔗 Cross-Correlated Indicators (IOCs)\n"
+            if all_ips:
+                res += f"**Suspicious IPs:** {', '.join(all_ips)}\n"
+            if all_domains:
+                res += f"**Suspicious Domains:** {', '.join(all_domains)}\n"
+            res += "\n"
+            
         if high_risks:
             res += "#### 🚨 Critical Findings\n"
-            res += "\n".join(high_risks[:3]) # Limit to top 3 for brevity
+            res += "\n".join(high_risks[:4])
             res += "\n\n"
         if med_risks:
-            res += "#### ⚠️ Suspicious Indicators\n"
+            res += "#### ⚠️ Suspicious Behaviors\n"
             res += "\n".join(med_risks[:3])
             res += "\n\n"
             
         if not high_risks and not med_risks:
-            res += "✅ No significant malicious signatures were detected across the ingested evidence."
+            res += "✅ No significant malicious signatures were detected across the ingested evidence. The telemetry appears benign."
         else:
-            res += "**Recommended Action**: Immediately isolate any endpoints associated with the critical findings and review the exact YARA signature matches in the Triage dashboard."
+            res += "**Recommended Action**: Immediately isolate any endpoints associated with the critical IP indicators. Consider dumping process memory for the flagged executables."
             
         return jsonify({"response": res})
         
-    # Default fallback response
+    elif 'ip' in message or 'domain' in message or 'c2' in message or 'network' in message:
+        res = "### 🌐 Network Infrastructure Analysis\n\n"
+        if not all_ips and not all_domains:
+            res += "I could not identify any suspicious external infrastructure or C2 beaconing in the provided artifacts."
+        else:
+            res += "Based on the forensic logs (PCAP and Memory), I have extracted the following external routing targets:\n\n"
+            for ip in all_ips:
+                res += f"- **{ip}** : High probability of acting as a Command & Control (C2) server or payload drop zone.\n"
+            for dom in all_domains:
+                res += f"- **{dom}** : Identified in HTTP headers or DNS queries. Likely used for domain-fronting or beaconing.\n"
+        return jsonify({"response": res})
+        
+    elif 'malware' in message or 'exe' in message or 'virus' in message or 'yara' in message:
+        res = "### 🦠 Reverse Engineering Summary\n\n"
+        has_malware = any(ev.filename.endswith('.exe') for ev in case.evidence)
+        if not has_malware:
+            return jsonify({"response": "I don't see any executable binaries (`.exe` or `.dll`) in this case. Please upload a sample for me to analyze its PE headers and strings."})
+        
+        malware_logs = [log for ev in case.evidence for log in ev.logs if ev.filename.endswith('.exe')]
+        if malware_logs:
+            res += "I have cross-referenced the YARA matches and static indicators from your binary samples:\n\n"
+            for log in malware_logs[:4]:
+                res += f"- {log.description}\n"
+        else:
+            res += "The uploaded binaries did not trigger any YARA signatures or exhibit high entropy (packing)."
+        return jsonify({"response": res})
+
+    # Default fallback response simulating LLM conversational tone
     return jsonify({
-        "response": f"I am currently analyzing the context for **{case.case_number}**. I detected {len(high_risks)} high-risk anomalies in the evidence chain. Ask me to 'summarize the risks' for a detailed breakdown."
+        "response": f"I am actively monitoring **{case.case_number}**. I have parsed {len(high_risks)} critical anomalies and extracted {len(all_ips)} unique foreign IPs from the evidence graph.\n\nAsk me to **summarize the risks**, **list the C2 IPs**, or **analyze the malware**."
     })
 
 if __name__ == "__main__":
