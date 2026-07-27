@@ -183,8 +183,12 @@ def get_all_evidence():
 
 @app.route("/api/malware/latest")
 def get_latest_malware():
-    # Find latest evidence that is an executable
-    latest_malware = Evidence.query.filter(Evidence.filename.like('%.exe') | Evidence.filename.like('%.dll')).order_by(Evidence.id.desc()).first()
+    case_id = request.args.get('caseId')
+    query = Evidence.query.filter(Evidence.filename.like('%.exe') | Evidence.filename.like('%.dll'))
+    if case_id:
+        query = query.filter(Evidence.case_id == case_id)
+        
+    latest_malware = query.order_by(Evidence.id.desc()).first()
     
     if not latest_malware:
         return jsonify({"status": "error", "message": "No malware samples found in the database."}), 404
