@@ -729,24 +729,17 @@ def upload_evidence(case_id):
             db.session.commit()
         elif filename.lower().endswith(('.exe', '.dll', '.bin', '.sys')):
             malware_results = analyze_malware_file(save_path, filename)
-            risk_level = "High" if malware_results['is_suspicious'] else "Low"
-            
-            desc_lines = []
-            if malware_results['yara_matches']:
-                for match in malware_results['yara_matches']:
-                    desc_lines.append(f"[YARA RULE] {match['rule']}: {match['meta']}")
-            desc_lines.extend(malware_results['notes'])
-            
-            db_log = ForensicLog(
-                time_created="Static Scan Timestamp",
-                event_id=999,
-                source=f"YARA & Static Analyzer: {filename}",
-                description=" | ".join(desc_lines),
-                risk_level=risk_level,
-                tool_source="yara",
-                evidence_id=new_evidence.id
-            )
-            db.session.add(db_log)
+            for log_entry in malware_results:
+                db_log = ForensicLog(
+                    time_created=str(log_entry.get('time_created', 'Static Scan Timestamp')),
+                    event_id=int(log_entry.get('event_id', 999)),
+                    source=str(log_entry.get('source', f"YARA & Static Analyzer: {filename}")),
+                    description=str(log_entry.get('description', '')),
+                    risk_level=str(log_entry.get('risk_level', 'High')),
+                    tool_source="yara",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
             db.session.commit()
 
         elif filename.lower().endswith(('.pcap', '.cap')):
