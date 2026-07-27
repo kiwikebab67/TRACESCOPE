@@ -211,3 +211,72 @@ def analyze_memory_dump(filepath, filename):
         })
         
     return logs
+
+def extract_real_hex(filepath):
+    try:
+        with open(filepath, 'rb') as f:
+            data = f.read(1024)
+        
+        hex_dump = []
+        for i in range(0, len(data), 16):
+            chunk = data[i:i+16]
+            offset = f"{i:08x}"
+            hex_bytes = " ".join([f"{b:02x}" for b in chunk])
+            ascii_chars = "".join([chr(b) if 32 <= b <= 126 else "." for b in chunk])
+            hex_bytes = hex_bytes.ljust(47)
+            hex_dump.append(f"{offset}  {hex_bytes}  |{ascii_chars}|")
+        return hex_dump
+    except Exception as e:
+        return [f"Error extracting hex: {str(e)}"]
+
+def extract_real_strings(filepath):
+    try:
+        with open(filepath, 'rb') as f:
+            data = f.read()
+            
+        import re
+        ascii_pattern = re.compile(b'[\x20-\x7E]{5,}')
+        found_ascii = ascii_pattern.findall(data)
+        
+        strings = []
+        for s in found_ascii:
+            try:
+                decoded = s.decode('utf-8')
+                if len(decoded) >= 5:
+                    strings.append(decoded)
+            except:
+                pass
+                
+        unique_strings = list(dict.fromkeys(strings))
+        return unique_strings[:100]
+    except Exception as e:
+        return [f"Error extracting strings: {str(e)}"]
+
+def disassemble_entry_point(filepath):
+    try:
+        import pefile
+        import capstone
+        pe = pefile.PE(filepath)
+        ep = pe.OPTIONAL_HEADER.AddressOfEntryPoint
+        ep_offset = pe.get_offset_from_rva(ep)
+        
+        machine_type = pe.FILE_HEADER.Machine
+        if machine_type == 0x8664:
+            mode = capstone.CS_MODE_64
+        else:
+            mode = capstone.CS_MODE_32
+            
+        with open(filepath, 'rb') as f:
+            f.seek(ep_offset)
+            code = f.read(150)
+            
+        md = capstone.Cs(capstone.CS_ARCH_X86, mode)
+        instructions = []
+        image_base = pe.OPTIONAL_HEADER.ImageBase
+        
+        for i in md.disasm(code, image_base + ep):
+            instructions.append(f"0x{i.address:x}: {i.mnemonic} {i.op_str}")
+            
+        return instructions
+    except Exception as e:
+        return [f"Error disassembling: {str(e)}"]

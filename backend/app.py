@@ -1,4 +1,4 @@
-from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump
+from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
 from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact
 import os
 import hashlib
@@ -191,6 +191,33 @@ def get_latest_malware():
         
     logs = ForensicLog.query.filter_by(evidence_id=latest_malware.id).all()
     
+    filepath = latest_malware.filepath
+    real_hex = ""
+    real_strings = []
+    disassembly = []
+    pe_metadata = {}
+    
+    if os.path.exists(filepath):
+        real_hex = extract_real_hex(filepath)
+        real_strings = extract_real_strings(filepath)
+        disassembly = disassemble_entry_point(filepath)
+        
+        try:
+            import pefile
+            from datetime import datetime
+            pe = pefile.PE(filepath)
+            timestamp = pe.FILE_HEADER.TimeDateStamp
+            compile_time = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            machine_type = hex(pe.FILE_HEADER.Machine)
+            pe_metadata = {
+                "compile_timestamp": compile_time,
+                "machine_architecture": machine_type,
+                "number_of_sections": pe.FILE_HEADER.NumberOfSections,
+                "entry_point_rva": hex(pe.OPTIONAL_HEADER.AddressOfEntryPoint)
+            }
+        except Exception as e:
+            pe_metadata = {"error": f"Failed to extract PE metadata: {str(e)}"}
+            
     return jsonify({
         "status": "success",
         "evidence": {
@@ -201,6 +228,10 @@ def get_latest_malware():
             "size": os.path.getsize(latest_malware.filepath) if os.path.exists(latest_malware.filepath) else 0,
             "case_number": latest_malware.case.case_number if latest_malware.case else "Unknown"
         },
+        "real_hex": real_hex,
+        "real_strings": real_strings,
+        "disassembly": disassembly,
+        "pe_metadata": pe_metadata,
         "analysis_logs": [{
             "id": log.id,
             "time_created": log.time_created,

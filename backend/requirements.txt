@@ -7,3 +7,4 @@ requests
 flask-cors
 python-dotenv
 scapy
+capstone
