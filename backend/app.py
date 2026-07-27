@@ -331,8 +331,12 @@ def get_timeline():
 
 @app.route("/api/network")
 def get_network_pcap():
-    # Find latest uploaded PCAP file
-    latest_pcap = Evidence.query.filter(Evidence.filename.like('%.pcap') | Evidence.filename.like('%.cap')).order_by(Evidence.id.desc()).first()
+    case_id = request.args.get('caseId')
+    query = Evidence.query.filter(Evidence.filename.like('%.pcap') | Evidence.filename.like('%.cap'))
+    if case_id:
+        query = query.filter(Evidence.case_id == case_id)
+        
+    latest_pcap = query.order_by(Evidence.id.desc()).first()
     
     if not latest_pcap:
         return jsonify({"status": "error", "message": "No network packet capture (.pcap) found. Please upload a PCAP file to begin analysis.", "packets": []})
@@ -445,8 +449,13 @@ def get_email():
 
 @app.route("/api/memory/latest")
 def get_latest_memory():
-    # Fetch latest volatility memory analysis logs
-    logs = ForensicLog.query.filter_by(tool_source="volatility").order_by(ForensicLog.id.desc()).all()
+    case_id = request.args.get('caseId')
+    query = ForensicLog.query.filter_by(tool_source="volatility")
+    
+    if case_id:
+        query = query.join(Evidence).filter(Evidence.case_id == case_id)
+        
+    logs = query.order_by(ForensicLog.id.desc()).all()
     
     if not logs:
         return jsonify({
