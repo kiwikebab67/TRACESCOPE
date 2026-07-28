@@ -4,7 +4,15 @@ import Globe from 'react-globe.gl';
 const NetworkGlobe = ({ packets }) => {
   const globeRef = useRef();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [countries, setCountries] = useState({ features: [] });
   const containerRef = useRef();
+
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
+      .then(res => res.json())
+      .then(setCountries)
+      .catch(err => console.error("Could not load globe geojson:", err));
+  }, []);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -91,6 +99,12 @@ const NetworkGlobe = ({ packets }) => {
           height={dimensions.height}
           globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
           backgroundColor="rgba(0,0,0,0)"
+          
+          polygonsData={countries.features}
+          polygonAltitude={0.01}
+          polygonCapColor={() => 'rgba(0, 240, 255, 0.15)'}
+          polygonSideColor={() => 'rgba(0, 240, 255, 0.05)'}
+          polygonStrokeColor={() => '#00f0ff'}
           
           arcsData={arcsData}
           arcStartLat={d => d.startLat}
