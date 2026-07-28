@@ -7,29 +7,48 @@ const SocialConstellation = ({ logs }) => {
   // Check if we have logs to extract some dynamic info
   const hasMalicious = logs && logs.some(l => l.risk_level === 'High');
 
-  // Hardcoded constellation layout for the visualizer
-  // In a real scenario, this would be computed using d3-force or similar
-  const nodes = useMemo(() => [
-    { id: 'attacker', type: 'hacker', x: 50, y: 100, label: 'Attacker C2', isMalicious: true },
-    { id: 'domain1', type: 'domain', x: 200, y: 50, label: 'login-secure-update.com', isMalicious: true },
-    { id: 'domain2', type: 'domain', x: 250, y: 150, label: 'auth-gateway.net', isMalicious: hasMalicious },
-    { id: 'ip1', type: 'ip', x: 400, y: 80, label: '192.168.1.104', isMalicious: false },
-    { id: 'ip2', type: 'ip', x: 450, y: 200, label: '10.0.0.5 (Victim)', isMalicious: false },
-    { id: 'email1', type: 'email', x: 600, y: 120, label: 'HR-Update@company.com', isMalicious: hasMalicious },
-    { id: 'victim1', type: 'victim', x: 750, y: 60, label: 'John Doe', isMalicious: false },
-    { id: 'victim2', type: 'victim', x: 750, y: 180, label: 'Jane Smith', isMalicious: false },
-  ], [hasMalicious]);
+  // Dynamic nodes from logs
+  const nodes = useMemo(() => {
+    if (!logs || logs.length === 0) {
+      return [{ id: 'center', type: 'email', x: 400, y: 125, label: 'Awaiting Evidence', isMalicious: false }];
+    }
+    
+    const results = [{ id: 'center', type: 'email', x: 400, y: 125, label: 'TraceScope Analysis', isMalicious: hasMalicious }];
+    
+    // Limit to 12 nodes max to prevent overcrowding
+    logs.slice(0, 12).forEach((log, i) => {
+      const total = Math.min(logs.length, 12);
+      const angle = (i / total) * 2 * Math.PI;
+      const radiusX = 250;
+      const radiusY = 90;
+      
+      const x = 400 + radiusX * Math.cos(angle);
+      const y = 125 + radiusY * Math.sin(angle);
+      
+      let type = 'ip';
+      if (log.source.includes('@')) type = 'email';
+      else if (log.source.match(/[a-zA-Z]+\.[a-zA-Z]+/)) type = 'domain';
+      
+      results.push({
+        id: `node-${i}`,
+        type: type,
+        x,
+        y,
+        label: log.source.substring(0, 25),
+        isMalicious: log.risk_level === 'High'
+      });
+    });
+    return results;
+  }, [logs, hasMalicious]);
 
-  const edges = useMemo(() => [
-    { source: 'attacker', target: 'domain1' },
-    { source: 'attacker', target: 'domain2' },
-    { source: 'domain1', target: 'ip1' },
-    { source: 'domain2', target: 'ip2' },
-    { source: 'ip1', target: 'email1' },
-    { source: 'ip2', target: 'email1' },
-    { source: 'email1', target: 'victim1' },
-    { source: 'email1', target: 'victim2' },
-  ], []);
+  const edges = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
+    return logs.slice(0, 12).map((log, i) => ({
+      source: 'center',
+      target: `node-${i}`,
+      isMalicious: log.risk_level === 'High'
+    }));
+  }, [logs]);
 
   const getNodeIcon = (type, isMalicious) => {
     const props = { className: clsx("w-6 h-6", isMalicious ? "text-red-400" : "text-[var(--ts-blue)]") };
@@ -47,7 +66,7 @@ const SocialConstellation = ({ logs }) => {
     <div className="w-full h-full relative bg-[var(--ts-panel)] dark:bg-black overflow-hidden rounded-xl border border-ts-border">
       <div className="absolute inset-0 bg-gradient-radial from-[var(--ts-blue)]/5 to-transparent pointer-events-none z-10 opacity-70" />
       
-      <svg className="w-full h-full absolute inset-0" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
+      <svg className="w-full h-full absolute inset-0" viewBox="0 0 800 250" preserveAspectRatio="none">
         {/* Edges */}
         {edges.map((edge, i) => {
           const sourceNode = nodes.find(n => n.id === edge.source);

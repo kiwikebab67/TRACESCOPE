@@ -7,24 +7,41 @@ const UsbTopology = ({ logs }) => {
   // Hardcoded device topology for the visualizer
   const hasSuspicious = logs && logs.some(l => l.risk_level === 'High');
 
-  const nodes = useMemo(() => [
-    { id: 'host', type: 'cpu', x: 100, y: 125, label: 'Host Controller (PCIe)', suspicious: false },
-    { id: 'hub1', type: 'hub', x: 300, y: 75, label: 'Root Hub A', suspicious: false },
-    { id: 'hub2', type: 'hub', x: 300, y: 175, label: 'Root Hub B', suspicious: false },
-    { id: 'keyboard', type: 'hid', x: 500, y: 50, label: 'Logitech HID', suspicious: false },
-    { id: 'mouse', type: 'hid', x: 500, y: 100, label: 'Razer Mouse', suspicious: false },
-    { id: 'usb1', type: 'storage', x: 500, y: 175, label: 'SanDisk Cruzer (E:)', suspicious: hasSuspicious },
-    { id: 'payload', type: 'malware', x: 700, y: 175, label: 'payload.exe Executed', suspicious: hasSuspicious },
-  ], [hasSuspicious]);
+  const nodes = useMemo(() => {
+    if (!logs || logs.length === 0) {
+      return [{ id: 'host', type: 'cpu', x: 400, y: 125, label: 'Host Controller (Idle)', suspicious: false }];
+    }
+    
+    const results = [
+      { id: 'host', type: 'cpu', x: 100, y: 125, label: 'TraceScope Root Hub', suspicious: false }
+    ];
+    
+    // Distribute USB devices in a column
+    logs.slice(0, 8).forEach((log, i) => {
+      const total = Math.min(logs.length, 8);
+      // Y positions from 40 to 210 to fit within 250 height
+      const y = total === 1 ? 125 : 40 + (i * 170 / (total - 1));
+      
+      results.push({
+        id: `usb-${i}`,
+        type: log.risk_level === 'High' ? 'malware' : 'storage',
+        x: 650,
+        y,
+        label: log.source.substring(0, 25),
+        suspicious: log.risk_level === 'High'
+      });
+    });
+    return results;
+  }, [logs]);
 
-  const edges = useMemo(() => [
-    { source: 'host', target: 'hub1' },
-    { source: 'host', target: 'hub2' },
-    { source: 'hub1', target: 'keyboard' },
-    { source: 'hub1', target: 'mouse' },
-    { source: 'hub2', target: 'usb1' },
-    { source: 'usb1', target: 'payload', isThreatPath: hasSuspicious },
-  ], [hasSuspicious]);
+  const edges = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
+    return logs.slice(0, 8).map((log, i) => ({
+      source: 'host',
+      target: `usb-${i}`,
+      isThreatPath: log.risk_level === 'High'
+    }));
+  }, [logs]);
 
   const getNodeIcon = (type, suspicious) => {
     const props = { className: clsx("w-5 h-5", suspicious ? "text-red-400" : "text-[var(--ts-blue)]") };
@@ -42,7 +59,7 @@ const UsbTopology = ({ logs }) => {
     <div className="w-full h-full relative bg-[var(--ts-panel)] dark:bg-black overflow-hidden rounded-xl border border-ts-border">
       <div className="absolute inset-0 bg-gradient-radial from-[var(--ts-blue)]/5 to-transparent pointer-events-none z-10 opacity-70" />
       
-      <svg className="w-full h-full absolute inset-0" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
+      <svg className="w-full h-full absolute inset-0" viewBox="0 0 800 250" preserveAspectRatio="none">
         {/* Edges */}
         {edges.map((edge, i) => {
           const sourceNode = nodes.find(n => n.id === edge.source);
