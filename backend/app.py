@@ -692,8 +692,18 @@ def upload_evidence(case_id):
         db.session.add(new_evidence)
         db.session.commit() 
         
+        def clear_old_logs(tool_src):
+            logs_to_delete = ForensicLog.query.join(Evidence).filter(
+                Evidence.case_id == case.id,
+                ForensicLog.tool_source == tool_src
+            ).all()
+            for l in logs_to_delete:
+                db.session.delete(l)
+            db.session.commit()
+        
         # Synchronous processing for MVP (to be moved to Celery later)
         if filename.lower().endswith(('.evtx', '.txt')):
+            clear_old_logs("logs")
             parsed_events = parse_evtx_log(save_path)
             for event in parsed_events:
                 try:
@@ -721,6 +731,8 @@ def upload_evidence(case_id):
             db.session.commit()
             
         elif filename.lower().endswith(('.dat', '.reg')):
+            clear_old_logs("regripper")
+            clear_old_logs("registry")
             parsed_events = parse_registry_hive(save_path)
             for event in parsed_events:
                 db_log = ForensicLog(
@@ -736,6 +748,7 @@ def upload_evidence(case_id):
             db.session.commit()
             
         elif filename.lower().endswith('.eml'):
+            clear_old_logs("email")
             parsed_events = parse_email_artifact(save_path)
             for event in parsed_events:
                 db_log = ForensicLog(
@@ -750,6 +763,7 @@ def upload_evidence(case_id):
                 db.session.add(db_log)
             db.session.commit()
         elif filename.lower().endswith(('.exe', '.dll', '.bin', '.sys')):
+            clear_old_logs("yara")
             malware_results = analyze_malware_file(save_path, filename)
             for log_entry in malware_results:
                 db_log = ForensicLog(
@@ -765,6 +779,7 @@ def upload_evidence(case_id):
             db.session.commit()
 
         elif filename.lower().endswith(('.pcap', '.cap')):
+            clear_old_logs("wireshark")
             packet_events = parse_pcap_capture(save_path)
             for pkt in packet_events:
                 db_log = ForensicLog(
@@ -780,6 +795,7 @@ def upload_evidence(case_id):
             db.session.commit()
 
         elif filename.lower().endswith(('.raw', '.dmp', '.mem')):
+            clear_old_logs("volatility")
             vol_events = analyze_memory_dump(save_path, filename)
             for vol in vol_events:
                 db_log = ForensicLog(
@@ -810,6 +826,7 @@ def upload_evidence(case_id):
             db.session.commit()
 
         elif filename.lower().endswith(('.img', '.ad1')):
+            clear_old_logs("autopsy")
             disk_events = parse_autopsy_disk(save_path)
             for disk in disk_events:
                 db_log = ForensicLog(
@@ -825,6 +842,7 @@ def upload_evidence(case_id):
             db.session.commit()
             
         elif filename.lower().endswith(('.sqlite', '.sqlite3', '.db')):
+            clear_old_logs("browser")
             browser_events = parse_browser_sqlite(save_path)
             for event in browser_events:
                 db_log = ForensicLog(
