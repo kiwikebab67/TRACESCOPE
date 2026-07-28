@@ -1,5 +1,5 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
-from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite
 import os
 import hashlib
 import json 
@@ -815,11 +815,51 @@ def upload_evidence(case_id):
                 db.session.add(db_log)
             db.session.commit()
             
+        elif filename.lower().endswith(('.sqlite', '.sqlite3', '.db')):
+            browser_events = parse_browser_sqlite(save_path)
+            for event in browser_events:
+                db_log = ForensicLog(
+                    time_created=event['time_created'],
+                    event_id=event['event_id'],
+                    source=event['source'],
+                    description=event['description'],
+                    risk_level=event['risk_level'],
+                    tool_source="browser",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
+            
+            
         return jsonify({
             "status": "success", 
             "message": f"Successfully ingested {filename} into pipeline",
             "evidence_id": new_evidence.id
         })
+            
+@app.route("/api/browser")
+def get_browser():
+    case_id = request.args.get('caseId')
+    if not case_id:
+        return jsonify({"status": "error", "message": "No Case ID provided."}), 400
+    
+    logs = ForensicLog.query.join(Evidence).filter(
+        Evidence.case_id == case_id, 
+        ForensicLog.tool_source == 'browser'
+    ).order_by(ForensicLog.id.desc()).all()
+    
+    return jsonify({
+        "status": "success",
+        "current_evidence": logs[0].evidence.filename if logs else None,
+        "browser_logs": [{
+            "id": l.id,
+            "time_created": l.time_created,
+            "event_id": l.event_id,
+            "source": l.source,
+            "description": l.description,
+            "risk_level": l.risk_level
+        } for l in logs]
+    })
             
 @app.route("/api/ai/chat", methods=["POST"])
 def ai_chat():

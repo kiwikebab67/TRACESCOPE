@@ -336,3 +336,105 @@ def parse_email_artifact(filepath):
         events.append({"event_id": 999, "source": "Email Parse Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
         
     return events
+
+def parse_browser_sqlite(filepath):
+    """
+    Parses SQLite browser history databases (e.g., Chrome 'urls' table).
+    """
+    import sqlite3
+    import datetime
+    events = []
+    try:
+        conn = sqlite3.connect(filepath)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Check for Chrome 'urls' table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='urls';")
+        if cursor.fetchone():
+            cursor.execute("SELECT url, title, visit_count, last_visit_time FROM urls ORDER BY last_visit_time DESC LIMIT 100")
+            for row in cursor.fetchall():
+                url = row['url'] or "Unknown URL"
+                title = row['title'] or "No Title"
+                visits = row['visit_count'] or 0
+                time_val = row['last_visit_time'] or 0
+                
+                try:
+                    # Chrome time is microseconds since Jan 1, 1601
+                    epoch = datetime.datetime(1601, 1, 1)
+                    actual_time = epoch + datetime.timedelta(microseconds=time_val)
+                    time_str = actual_time.strftime('%Y-%m-%d %H:%M:%S')
+                except Exception:
+                    time_str = str(time_val)
+
+                risk = "Low"
+                intel = ""
+                if "login" in url.lower() or "admin" in url.lower() or "cpanel" in url.lower():
+                    risk = "Medium"
+                    intel = " (Potential credential access point)"
+                if "185.220.101.4" in url or "rx-c2-panel.xyz" in url or "cmd.exe" in url:
+                    risk = "High"
+                    intel = " (KNOWN C2 / PAYLOAD INFRASTRUCTURE)"
+                    
+                events.append({
+                    "event_id": 9001,
+                    "source": "Browser History (Chrome)",
+                    "description": f"Title: {title}\nURL: {url}\nVisits: {visits}{intel}",
+                    "risk_level": risk,
+                    "time_created": time_str
+                })
+        else:
+            # Check for Firefox 'moz_places' table
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_places';")
+            if cursor.fetchone():
+                cursor.execute("SELECT url, title, visit_count, last_visit_date FROM moz_places ORDER BY last_visit_date DESC LIMIT 100")
+                for row in cursor.fetchall():
+                    url = row['url'] or "Unknown URL"
+                    title = row['title'] or "No Title"
+                    visits = row['visit_count'] or 0
+                    time_val = row['last_visit_date'] or 0
+                    
+                    try:
+                        # Firefox uses PRTime (microseconds since Jan 1, 1970)
+                        epoch = datetime.datetime(1970, 1, 1)
+                        actual_time = epoch + datetime.timedelta(microseconds=time_val)
+                        time_str = actual_time.strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception:
+                        time_str = str(time_val)
+
+                    risk = "Low"
+                    intel = ""
+                    if "185.220.101.4" in url or "rx-c2-panel.xyz" in url:
+                        risk = "High"
+                        intel = " (KNOWN C2 INFRASTRUCTURE)"
+                        
+                    events.append({
+                        "event_id": 9002,
+                        "source": "Browser History (Firefox)",
+                        "description": f"Title: {title}\nURL: {url}\nVisits: {visits}{intel}",
+                        "risk_level": risk,
+                        "time_created": time_str
+                    })
+            else:
+                # Generic fallback
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                tables = [r['name'] for r in cursor.fetchall()]
+                events.append({
+                    "event_id": 9000,
+                    "source": "Generic SQLite Parser",
+                    "description": f"Parsed generic SQLite database with tables: {', '.join(tables)}",
+                    "risk_level": "Low",
+                    "time_created": "Unknown"
+                })
+                
+        conn.close()
+    except Exception as e:
+        events.append({
+            "event_id": 999,
+            "source": "SQLite Parse Error",
+            "description": f"Failed to parse SQLite database: {str(e)}",
+            "risk_level": "High",
+            "time_created": "N/A"
+        })
+        
+    return events
