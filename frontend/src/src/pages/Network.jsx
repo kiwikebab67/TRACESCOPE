@@ -73,7 +73,7 @@ const Network = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 h-[calc(100vh-120px)]">
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-120px)] h-auto pb-6">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
@@ -106,7 +106,7 @@ const Network = () => {
       />
 
       {/* Visually Stunning Dashboards */}
-      <div className="grid grid-cols-3 gap-6 h-72 shrink-0">
+      <div className="grid grid-cols-3 gap-6 h-56 shrink-0">
         <div className="col-span-2 glass-panel relative overflow-hidden rounded-xl border border-ts-border shadow-[0_0_30px_rgba(14,165,233,0.1)]">
           <NetworkGlobe packets={packets} />
         </div>
@@ -115,7 +115,7 @@ const Network = () => {
         </div>
       </div>
 
-      <div className="flex gap-6 flex-1 min-h-0">
+      <div className="flex gap-6 flex-1 min-h-[400px]">
         {/* Packet List */}
         <div className="flex-1 glass-panel flex flex-col min-w-0">
           <div className="grid grid-cols-12 gap-2 p-3 border-b border-[var(--ts-border)] text-xs font-bold text-ts-text-muted uppercase tracking-wider bg-black/20">

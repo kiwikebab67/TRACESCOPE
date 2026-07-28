@@ -41,7 +41,7 @@ const Memory = () => {
   const malfind = logs.filter(l => l.source.includes('malfind'));
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto h-[calc(100vh-120px)]">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto min-h-[calc(100vh-120px)] h-auto pb-6">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
@@ -80,11 +80,11 @@ const Memory = () => {
       />
 
       {/* Visually Stunning Dashboards */}
-      <div className="h-64 shrink-0 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(14,165,233,0.1)]">
+      <div className="h-56 shrink-0 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(14,165,233,0.1)]">
         <MemoryRadar logs={logs} />
       </div>
 
-      <div className="flex-1 glass-panel flex flex-col min-h-0 relative overflow-hidden">
+      <div className="flex-1 glass-panel flex flex-col min-h-[400px] relative overflow-hidden">
         {/* Terminal Header */}
         <div className="bg-black/80 px-4 py-2 flex items-center gap-2 border-b border-[var(--ts-border)]">
           <div className="w-3 h-3 rounded-full bg-red-500"></div>
