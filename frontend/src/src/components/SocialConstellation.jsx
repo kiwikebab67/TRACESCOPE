@@ -10,10 +10,19 @@ const SocialConstellation = ({ logs }) => {
   // Dynamic nodes from logs
   const nodes = useMemo(() => {
     if (!logs || logs.length === 0) {
-      return [{ id: 'center', type: 'email', x: 400, y: 125, label: 'Awaiting Evidence', isMalicious: false }];
+      return [
+        { id: 'attacker', type: 'hacker', x: 50, y: 100, label: 'Attacker C2', isMalicious: true, info: 'Command & Control Server' },
+        { id: 'domain1', type: 'domain', x: 200, y: 50, label: 'login-secure-update.com', isMalicious: true, info: 'Spoofed Authentication Page' },
+        { id: 'domain2', type: 'domain', x: 250, y: 150, label: 'auth-gateway.net', isMalicious: false, info: 'Suspicious Redirect' },
+        { id: 'ip1', type: 'ip', x: 400, y: 80, label: '192.168.1.104', isMalicious: false, info: 'Internal Endpoint' },
+        { id: 'ip2', type: 'ip', x: 450, y: 200, label: '10.0.0.5', isMalicious: false, info: 'Compromised Victim' },
+        { id: 'email1', type: 'email', x: 600, y: 120, label: 'HR-Update@company.com', isMalicious: true, info: 'Phishing Payload Delivery' },
+        { id: 'victim1', type: 'victim', x: 750, y: 60, label: 'John Doe', isMalicious: false, info: 'Targeted User' },
+        { id: 'victim2', type: 'victim', x: 750, y: 180, label: 'Jane Smith', isMalicious: false, info: 'Lateral Movement Target' },
+      ];
     }
     
-    const results = [{ id: 'center', type: 'email', x: 400, y: 125, label: 'TraceScope Analysis', isMalicious: hasMalicious }];
+    const results = [{ id: 'center', type: 'email', x: 400, y: 125, label: 'TraceScope Analysis', isMalicious: hasMalicious, info: 'Root Evidence' }];
     
     // Limit to 12 nodes max to prevent overcrowding
     logs.slice(0, 12).forEach((log, i) => {
@@ -35,14 +44,26 @@ const SocialConstellation = ({ logs }) => {
         x,
         y,
         label: log.source.substring(0, 25),
-        isMalicious: log.risk_level === 'High'
+        isMalicious: log.risk_level === 'High',
+        info: log.description.substring(0, 25) + '...'
       });
     });
     return results;
   }, [logs, hasMalicious]);
 
   const edges = useMemo(() => {
-    if (!logs || logs.length === 0) return [];
+    if (!logs || logs.length === 0) {
+      return [
+        { source: 'attacker', target: 'domain1' },
+        { source: 'attacker', target: 'domain2' },
+        { source: 'domain1', target: 'ip1' },
+        { source: 'domain2', target: 'ip2' },
+        { source: 'ip1', target: 'email1' },
+        { source: 'ip2', target: 'email1' },
+        { source: 'email1', target: 'victim1' },
+        { source: 'email1', target: 'victim2' },
+      ];
+    }
     return logs.slice(0, 12).map((log, i) => ({
       source: 'center',
       target: `node-${i}`,
@@ -115,10 +136,11 @@ const SocialConstellation = ({ logs }) => {
             {getNodeIcon(node.type, node.isMalicious)}
           </div>
           <div className={clsx(
-            "mt-2 text-[10px] font-mono font-bold whitespace-nowrap bg-[var(--ts-panel)]/80 dark:bg-black/80 px-2 py-1 rounded backdrop-blur-sm border",
-            node.isMalicious ? "text-red-400 border-red-500/30" : "text-[var(--ts-text)] border-[var(--ts-border)]"
+            "mt-2 text-[10px] font-mono whitespace-nowrap bg-[var(--ts-panel)]/80 dark:bg-black/80 px-2 py-1 rounded backdrop-blur-sm border text-center flex flex-col",
+            node.isMalicious ? "border-red-500/30" : "border-[var(--ts-border)]"
           )}>
-            {node.label}
+            <span className={node.isMalicious ? "text-red-400" : "text-[var(--ts-text)]"}>{node.label}</span>
+            {node.info && <span className="text-[8px] text-gray-500 mt-0.5">{node.info}</span>}
           </div>
         </motion.div>
       ))}

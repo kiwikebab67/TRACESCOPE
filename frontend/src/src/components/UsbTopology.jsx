@@ -9,11 +9,19 @@ const UsbTopology = ({ logs }) => {
 
   const nodes = useMemo(() => {
     if (!logs || logs.length === 0) {
-      return [{ id: 'host', type: 'cpu', x: 400, y: 125, label: 'Host Controller (Idle)', suspicious: false }];
+      return [
+        { id: 'host', type: 'cpu', x: 100, y: 125, label: 'Host Controller (PCIe)', suspicious: false, info: 'System Board' },
+        { id: 'hub1', type: 'hub', x: 300, y: 75, label: 'Root Hub A', suspicious: false, info: 'Front Panel USB 3.0' },
+        { id: 'hub2', type: 'hub', x: 300, y: 175, label: 'Root Hub B', suspicious: false, info: 'Rear Motherboard IO' },
+        { id: 'keyboard', type: 'hid', x: 500, y: 50, label: 'Logitech HID', suspicious: false, info: 'Authorized Device' },
+        { id: 'mouse', type: 'hid', x: 500, y: 100, label: 'Razer Mouse', suspicious: false, info: 'Authorized Device' },
+        { id: 'usb1', type: 'storage', x: 500, y: 175, label: 'SanDisk Cruzer (E:)', suspicious: true, info: 'Unauthorized Mass Storage' },
+        { id: 'payload', type: 'malware', x: 700, y: 175, label: 'payload.exe Executed', suspicious: true, info: 'Data Exfiltration' },
+      ];
     }
     
     const results = [
-      { id: 'host', type: 'cpu', x: 100, y: 125, label: 'TraceScope Root Hub', suspicious: false }
+      { id: 'host', type: 'cpu', x: 100, y: 125, label: 'TraceScope Root Hub', suspicious: false, info: 'Local Evidence Path' }
     ];
     
     // Distribute USB devices in a column
@@ -28,14 +36,24 @@ const UsbTopology = ({ logs }) => {
         x: 650,
         y,
         label: log.source.substring(0, 25),
-        suspicious: log.risk_level === 'High'
+        suspicious: log.risk_level === 'High',
+        info: log.description.substring(0, 25) + '...'
       });
     });
     return results;
   }, [logs]);
 
   const edges = useMemo(() => {
-    if (!logs || logs.length === 0) return [];
+    if (!logs || logs.length === 0) {
+      return [
+        { source: 'host', target: 'hub1' },
+        { source: 'host', target: 'hub2' },
+        { source: 'hub1', target: 'keyboard' },
+        { source: 'hub1', target: 'mouse' },
+        { source: 'hub2', target: 'usb1' },
+        { source: 'usb1', target: 'payload', isThreatPath: true },
+      ];
+    }
     return logs.slice(0, 8).map((log, i) => ({
       source: 'host',
       target: `usb-${i}`,
@@ -121,10 +139,11 @@ const UsbTopology = ({ logs }) => {
             {getNodeIcon(node.type, node.suspicious)}
           </div>
           <div className={clsx(
-            "mt-2 text-[10px] font-mono whitespace-nowrap bg-[var(--ts-panel)]/90 dark:bg-black/90 px-2 py-1 rounded backdrop-blur-sm border",
-            node.suspicious ? "text-red-400 font-bold border-red-500/30" : "text-[var(--ts-text-muted)] border-[var(--ts-border)]"
+            "mt-2 text-[10px] font-mono whitespace-nowrap bg-[var(--ts-panel)]/90 dark:bg-black/90 px-2 py-1 rounded backdrop-blur-sm border text-center flex flex-col",
+            node.suspicious ? "border-red-500/30" : "border-[var(--ts-border)]"
           )}>
-            {node.label}
+            <span className={node.suspicious ? "text-red-400 font-bold" : "text-[var(--ts-text-muted)]"}>{node.label}</span>
+            {node.info && <span className="text-[8px] text-gray-500 mt-0.5">{node.info}</span>}
           </div>
         </motion.div>
       ))}
