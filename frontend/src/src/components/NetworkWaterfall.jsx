@@ -44,7 +44,8 @@ const NetworkWaterfall = ({ packets }) => {
         }
       }
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      const isDark = document.documentElement.classList.contains('dark') || window.matchMedia('(prefers-color-scheme: dark)').matches;
+      ctx.fillStyle = isDark ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.font = fontSize + 'px monospace';
@@ -84,8 +85,8 @@ const NetworkWaterfall = ({ packets }) => {
   }, [packets]);
 
   return (
-    <div className="w-full h-full absolute inset-0 bg-black overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black pointer-events-none z-10" />
+    <div className="w-full h-full absolute inset-0 bg-[var(--ts-panel)] dark:bg-black overflow-hidden flex items-center justify-center">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--ts-panel)] dark:to-black pointer-events-none z-10" />
       <canvas ref={canvasRef} className="block w-full h-full opacity-80" />
       <div className="absolute bottom-4 right-4 z-20 pointer-events-none text-right">
         <h3 className="font-bold text-ts-cyan text-sm tracking-widest uppercase">
