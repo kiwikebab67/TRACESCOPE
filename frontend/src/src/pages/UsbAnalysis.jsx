@@ -4,6 +4,7 @@ import { Database, Usb, Key, UploadCloud, AlertTriangle, ShieldAlert, Terminal, 
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
 import FileUpload from '../components/FileUpload';
+import UsbTopology from '../components/UsbTopology';
 
 const parseDescription = (desc) => {
   if (!desc) return { text: '', threat: null, mitre: [], raw: null };
@@ -136,7 +137,7 @@ const UsbAnalysis = () => {
   }, [activeCaseId]);
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto h-[calc(100vh-120px)]">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto min-h-[calc(100vh-120px)] h-auto pb-6">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
@@ -163,7 +164,11 @@ const UsbAnalysis = () => {
         description="The USB Engine parses Windows Registry Hives (.reg, .dat) specifically for USBSTOR keys to automatically locate records of unauthorized USB devices previously plugged into the system." 
       />
 
-      <div className="flex-1 glass-panel flex flex-col min-h-0 relative overflow-hidden">
+      <div className="h-64 shrink-0 shadow-[0_0_30px_rgba(14,165,233,0.1)] rounded-xl overflow-hidden">
+        <UsbTopology logs={logs} />
+      </div>
+
+      <div className="flex-1 glass-panel flex flex-col min-h-[400px] relative overflow-hidden">
         {/* Terminal Header */}
         <div className="bg-black/80 px-4 py-2 flex items-center justify-between border-b border-[var(--ts-border)]">
           <div className="flex items-center gap-2">
