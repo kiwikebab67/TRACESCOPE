@@ -438,3 +438,39 @@ def parse_browser_sqlite(filepath):
         })
         
     return events
+
+def parse_prefetch(filepath):
+    """
+    Simulates parsing of Windows Prefetch (.pf) files.
+    """
+    events = []
+    try:
+        filename = os.path.basename(filepath)
+        events.append({
+            "event_id": 10001,
+            "source": "Windows Prefetch",
+            "description": f"Parsed Execution History from {filename}\nExecution Count: 14\nPath: \\DEVICE\\HARDDISKVOLUME1\\USERS\\VICTIM\\DOWNLOADS\\PAYLOAD.EXE",
+            "risk_level": "Medium" if "payload" in filename.lower() or "cmd" in filename.lower() else "Low",
+            "time_created": "2026-07-29 14:05:01 UTC"
+        })
+    except Exception as e:
+        events.append({"event_id": 999, "source": "Prefetch Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
+    return events
+
+def parse_lnk(filepath):
+    """
+    Simulates parsing of Windows Shortcut (.lnk) files.
+    """
+    events = []
+    try:
+        filename = os.path.basename(filepath)
+        events.append({
+            "event_id": 11001,
+            "source": "Windows LNK",
+            "description": f"Parsed Shortcut Metadata from {filename}\nTarget: C:\\Windows\\System32\\cmd.exe\nArguments: /c powershell.exe -w hidden -enc JABzAD0ATgBlAHcALQBPAGIAagBlAGMAdAAgAEkATwAuAE0AZQBtAG8AcgB5AFMAdAByAGUAYQBtACgAWwBDAG8AbgB2AGUAcgB0AF0AOgA6AEYAcgBvAG0AQgBhAHMAZQA2ADQAUwB0AHIAaQBuAGcAKAAiAEgA...",
+            "risk_level": "High",
+            "time_created": "2026-07-29 14:00:15 UTC"
+        })
+    except Exception as e:
+        events.append({"event_id": 999, "source": "LNK Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
+    return events

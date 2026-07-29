@@ -8,3 +8,5 @@ flask-cors
 python-dotenv
 scapy
 capstone
+bcrypt
+PyJWT

@@ -1,5 +1,5 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
-from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk
 import os
 import hashlib
 import json 
@@ -15,6 +15,11 @@ from models.database import db
 from models.case import Case
 from models.evidence import Evidence 
 from models.evidence import ForensicLog 
+from models.user import User
+import bcrypt
+import jwt
+from functools import wraps
+from datetime import datetime, timedelta
 
 # Configure Flask to serve the React SPA from the "dist" directory
 app = Flask(__name__, static_folder='dist', static_url_path='/')
@@ -28,7 +33,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 db.init_app(app)
 
 with app.app_context():
-    db.create_all()   
+    db.create_all()
+    # Seed default admin user if it doesn't exist
+    if not User.query.filter_by(username='admin').first():
+        hashed_password = bcrypt.hashpw('admin123!'.encode('utf-8'), bcrypt.gensalt())
+        admin_user = User(username='admin', password_hash=hashed_password.decode('utf-8'))
+        db.session.add(admin_user)
+        db.session.commit()
+        print("Default admin user created (admin / admin123!)")
 
 # Serve React App
 @app.route('/')
@@ -39,6 +51,63 @@ def index():
     response.headers['Expires'] = '-1'
     return response
 
+# Auth Middleware
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        try:
+            token = token.split(" ")[1] # Bearer <token>
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = User.query.filter_by(id=data['user_id']).first()
+        except:
+            return jsonify({'message': 'Token is invalid!'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'message': 'Username and password required'}), 400
+        
+    if User.query.filter_by(username=username).first():
+        return jsonify({'message': 'User already exists'}), 400
+        
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    new_user = User(username=username, password_hash=hashed_password.decode('utf-8'))
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User created successfully'}), 201
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'message': 'Username and password required'}), 400
+        
+    user = User.query.filter_by(username=username).first()
+    
+    if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        return jsonify({'message': 'Invalid credentials'}), 401
+        
+    token = jwt.encode({
+        'user_id': user.id,
+        'username': user.username,
+        'exp': datetime.utcnow() + timedelta(hours=24)
+    }, app.config['SECRET_KEY'], algorithm="HS256")
+    
+    return jsonify({'token': token, 'username': user.username})
+
 @app.errorhandler(404)
 def serve_react(e):
     if request.path.startswith('/api/'):
@@ -48,8 +117,6 @@ def serve_react(e):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '-1'
     return response
-
-from datetime import datetime, timedelta
 
 @app.route("/api/dashboard")
 def dashboard_stats():
@@ -317,7 +384,7 @@ def get_timeline():
     if not case_id:
         return jsonify([])
         
-    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id).order_by(ForensicLog.id.asc()).all()
+    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id).order_by(ForensicLog.time_created.asc()).all()
     return jsonify([{
         "id": log.id,
         "time_created": log.time_created,
