@@ -43,6 +43,15 @@ with app.app_context():
         db.session.commit()
         print("Default admin user created (admin / admin123!)")
     
+    # Force schema update for SQLite since create_all() doesn't alter tables
+    try:
+        db.session.execute(db.text("ALTER TABLE cases ADD COLUMN user_id INTEGER REFERENCES users(id)"))
+        db.session.commit()
+        print("Successfully added user_id column to cases table.")
+    except Exception as e:
+        # Column likely already exists
+        db.session.rollback()
+    
     # Migrate legacy cases to the admin user
     from models.case import Case
     legacy_cases = Case.query.filter_by(user_id=None).all()
