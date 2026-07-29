@@ -963,7 +963,38 @@ def upload_evidence(current_user, case_id):
                 db.session.add(db_log)
             db.session.commit()
             
+        elif filename.lower().endswith('.pf'):
+            clear_old_logs("prefetch")
+            pf_events = parse_prefetch(save_path)
+            for event in pf_events:
+                db_log = ForensicLog(
+                    time_created=event['time_created'],
+                    event_id=event['event_id'],
+                    source=event['source'],
+                    description=event['description'],
+                    risk_level=event['risk_level'],
+                    tool_source="prefetch",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
             
+        elif filename.lower().endswith('.lnk'):
+            clear_old_logs("lnk")
+            lnk_events = parse_lnk(save_path)
+            for event in lnk_events:
+                db_log = ForensicLog(
+                    time_created=event['time_created'],
+                    event_id=event['event_id'],
+                    source=event['source'],
+                    description=event['description'],
+                    risk_level=event['risk_level'],
+                    tool_source="lnk",
+                    evidence_id=new_evidence.id
+                )
+                db.session.add(db_log)
+            db.session.commit()
+
         return jsonify({
             "status": "success", 
             "message": f"Successfully ingested {filename} into pipeline",
