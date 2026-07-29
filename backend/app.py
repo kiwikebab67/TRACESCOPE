@@ -35,12 +35,22 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
     # Seed default admin user if it doesn't exist
-    if not User.query.filter_by(username='admin').first():
+    admin_user = User.query.filter_by(username='admin').first()
+    if not admin_user:
         hashed_password = bcrypt.hashpw('admin123!'.encode('utf-8'), bcrypt.gensalt())
         admin_user = User(username='admin', password_hash=hashed_password.decode('utf-8'))
         db.session.add(admin_user)
         db.session.commit()
         print("Default admin user created (admin / admin123!)")
+    
+    # Migrate legacy cases to the admin user
+    from models.case import Case
+    legacy_cases = Case.query.filter_by(user_id=None).all()
+    for legacy_case in legacy_cases:
+        legacy_case.user_id = admin_user.id
+    if legacy_cases:
+        db.session.commit()
+        print(f"Migrated {len(legacy_cases)} legacy cases to the admin user.")
 
 # Serve React App
 @app.route('/')
@@ -204,7 +214,8 @@ def dashboard_stats():
     })
 
 @app.route("/api/cases", methods=["GET", "POST"])
-def manage_cases():
+@token_required
+def manage_cases(current_user):
     if request.method == "POST":
         data = request.json
         import uuid
@@ -216,14 +227,15 @@ def manage_cases():
         new_case = Case(
             case_number=case_num,
             title=data.get("title", "Unnamed Investigation"),
-            investigator=data.get("investigator", "System Admin"),
-            description=data.get("description", "")
+            investigator=data.get("investigator", current_user.username),
+            description=data.get("description", ""),
+            user_id=current_user.id
         )
         db.session.add(new_case)
         db.session.commit()
         return jsonify({"message": "Case created successfully", "case_id": new_case.id}), 201
         
-    cases = Case.query.order_by(Case.created_at.desc()).all()
+    cases = Case.query.filter_by(user_id=current_user.id).order_by(Case.created_at.desc()).all()
     return jsonify([{
         "id": c.id,
         "case_number": c.case_number,
@@ -315,8 +327,12 @@ def get_latest_malware():
     })
 
 @app.route("/api/cases/<int:case_id>", methods=["PUT"])
-def update_case(case_id):
+@token_required
+def update_case(current_user, case_id):
     case = Case.query.get_or_404(case_id)
+    if case.user_id != current_user.id:
+        return jsonify({"message": "Unauthorized"}), 403
+        
     data = request.json
     
     if "title" in data:
@@ -343,9 +359,12 @@ def update_case(case_id):
     })
 
 @app.route("/api/cases/<int:case_id>")
-def case_details(case_id):
+@token_required
+def case_details(current_user, case_id):
     case = Case.query.get_or_404(case_id)
-    
+    if case.user_id != current_user.id:
+        return jsonify({"message": "Unauthorized"}), 403
+        
     analysis_results = []
     if case.evidence:
         for ev in case.evidence:
@@ -379,10 +398,15 @@ def case_details(case_id):
     })
 
 @app.route("/api/timeline")
-def get_timeline():
+@token_required
+def get_timeline(current_user):
     case_id = request.args.get('caseId')
     if not case_id:
         return jsonify([])
+        
+    case = Case.query.get(case_id)
+    if not case or case.user_id != current_user.id:
+        return jsonify({"message": "Unauthorized"}), 403
         
     logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id).order_by(ForensicLog.time_created.asc()).all()
     return jsonify([{
@@ -635,8 +659,11 @@ def threat_intel(case_id):
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route("/api/cases/<int:case_id>/report")
-def export_case_report(case_id):
+@token_required
+def export_case_report(current_user, case_id):
     case = Case.query.get_or_404(case_id)
+    if case.user_id != current_user.id:
+        return jsonify({"message": "Unauthorized"}), 403
     
     # Generate Professional Light-Theme Cyberpunk HTML Report
     html = f"""
@@ -725,10 +752,13 @@ def export_case_report(case_id):
     )
 
 @app.route("/api/cases/<int:case_id>/upload", methods=["POST"])
-def upload_evidence(case_id):
+@token_required
+def upload_evidence(current_user, case_id):
     case = Case.query.get(case_id)
     if not case:
         return jsonify({"error": f"Case ID {case_id} not found"}), 404
+    if case.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
         
     if 'evidence_file' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
