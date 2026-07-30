@@ -4,6 +4,7 @@ import { Mail, ShieldAlert, UploadCloud } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
 import FileUpload from '../components/FileUpload';
+import SocialConstellation from '../components/SocialConstellation';
 
 const EmailInvestigation = () => {
   const [logs, setLogs] = useState([]);
@@ -20,7 +21,7 @@ const EmailInvestigation = () => {
     }
     
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const res = await axios.get(`${baseUrl}/api/email?caseId=${activeCaseId}`);
       if (res.data.status === 'success') {
         setLogs(res.data.email_logs || []);
@@ -69,7 +70,11 @@ const EmailInvestigation = () => {
         description="The Email Engine parses raw .eml files to automatically extract sender/recipient details, malicious attachments, and embedded URLs or IP addresses used in phishing campaigns." 
       />
 
-      <div className="flex-1 glass-panel flex flex-col min-h-0 relative overflow-hidden">
+      <div className="h-64 shrink-0 shadow-[0_0_30px_rgba(14,165,233,0.1)] rounded-xl overflow-hidden">
+        <SocialConstellation logs={logs} />
+      </div>
+
+      <div className="flex-1 glass-panel flex flex-col min-h-[400px] relative overflow-hidden">
         {/* Terminal Header */}
         <div className="bg-black/80 px-4 py-2 flex items-center justify-between border-b border-[var(--ts-border)]">
           <div className="flex items-center gap-2">

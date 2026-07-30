@@ -22,7 +22,7 @@ const IOCScanner = () => {
     setResult(null);
     
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const res = await axios.post(`${baseUrl}/api/ioc-scan`, { ioc });
       setResult(res.data);
     } catch (err) {

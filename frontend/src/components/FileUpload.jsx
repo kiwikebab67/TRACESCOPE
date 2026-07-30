@@ -22,11 +22,11 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
     onDrop,
     maxFiles: 1,
     accept: {
-      'application/octet-stream': ['.raw', '.dmp', '.mem', '.bin', '.exe', '.dll', '.sys', '.dat'],
+      'application/octet-stream': ['.raw', '.dmp', '.mem', '.bin', '.exe', '.dll', '.sys', '.dat', '.lnk', '.pf'],
       'application/vnd.tcpdump.pcap': ['.pcap', '.cap'],
       'text/xml': ['.evtx'],
       'message/rfc822': ['.eml'],
-      'text/plain': ['.txt', '.log', '.reg'],
+      'text/plain': ['.txt', '.log', '.reg', '.ps1'],
       'application/vnd.sqlite3': ['.sqlite', '.sqlite3', '.db']
     }
   });
@@ -43,7 +43,7 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
 
     try {
       // Allow dynamic switching based on deployment (Vite proxy/local vs built static API)
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       
       const response = await axios.post(`${baseUrl}/api/cases/${caseId}/upload`, formData, {
         headers: {
@@ -96,7 +96,7 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
                 {isDragActive ? "Drop the file here..." : "Drag & drop an artifact, or click to select"}
               </p>
               <p className="text-xs text-ts-text-muted mt-2">
-                Supported: .raw, .mem, .pcap, .cap, .evtx, .exe, .dll, .txt, .reg, .dat, .eml, .sqlite, .db
+                Supported: .raw, .mem, .pcap, .evtx, .exe, .dll, .ps1, .lnk, .pf, .txt, .reg, .eml, .db
               </p>
             </div>
           ) : (

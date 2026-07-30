@@ -25,7 +25,7 @@ const Investigations = () => {
 
   const fetchCases = async () => {
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const response = await axios.get(`${baseUrl}/api/cases`);
       setCases(response.data);
     } catch (error) {
@@ -39,7 +39,7 @@ const Investigations = () => {
 
   const handleSaveCase = async (formData) => {
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       await axios.post(`${baseUrl}/api/cases`, formData);
       fetchCases();
     } catch (error) {

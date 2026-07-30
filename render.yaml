@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tracescope-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: VT_API_KEY
+        sync: false

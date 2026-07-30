@@ -114,7 +114,7 @@ const RegistryAnalysis = () => {
     }
     
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const res = await axios.get(`${baseUrl}/api/registry?caseId=${activeCaseId}`);
       if (res.data.status === 'success') {
         setLogs(res.data.registry_logs || []);

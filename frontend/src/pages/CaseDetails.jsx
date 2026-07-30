@@ -20,7 +20,7 @@ const CaseDetails = () => {
 
   const fetchCaseDetails = async () => {
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const response = await axios.get(`${baseUrl}/api/cases/${caseId}`);
       setCaseData(response.data);
       setLoading(false);
@@ -32,7 +32,7 @@ const CaseDetails = () => {
 
   const handleUpdateCase = async (formData) => {
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       await axios.put(`${baseUrl}/api/cases/${caseId}`, formData);
       await fetchCaseDetails();
       setIsEditModalOpen(false);
@@ -44,7 +44,7 @@ const CaseDetails = () => {
 
   const fetchThreatIntel = async () => {
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const response = await axios.get(`${baseUrl}/api/threat-intel/${caseId}`);
       if (response.data.status === 'success') {
         setThreatIntel(response.data);

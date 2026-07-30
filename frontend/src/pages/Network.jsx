@@ -4,6 +4,8 @@ import { Activity, ShieldAlert, Search, Download, UploadCloud, ChevronRight, Fil
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
 import FileUpload from '../components/FileUpload';
+import NetworkGlobe from '../components/NetworkGlobe';
+import NetworkWaterfall from '../components/NetworkWaterfall';
 
 const parseNetworkInfo = (info) => {
   if (!info) return { text: '', threat: null, mitre: [], raw: null };
@@ -50,8 +52,8 @@ const Network = () => {
 
   const fetchPackets = async () => {
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
-      const res = await axios.get(`${baseUrl}/api/network`);
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.get(`${baseUrl}/api/network?caseId=${activeCaseId}`);
       setPackets(res.data.packets || []);
       if (res.data.status === 'error') {
         setError(res.data.message);
@@ -71,7 +73,7 @@ const Network = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 h-[calc(100vh-120px)]">
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-120px)] h-auto pb-6">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
@@ -103,7 +105,17 @@ const Network = () => {
         description="The Network Protocol Analyzer acts like a wiretap for the compromised system. It intercepts and reads every packet of data that traveled across the network, allowing you to see exactly who the computer was talking to, what files they were downloading, and if any data was being secretly stolen." 
       />
 
-      <div className="flex gap-6 flex-1 min-h-0">
+      {/* Visually Stunning Dashboards */}
+      <div className="grid grid-cols-3 gap-6 h-56 shrink-0">
+        <div className="col-span-2 glass-panel relative overflow-hidden rounded-xl border border-ts-border shadow-[0_0_30px_rgba(14,165,233,0.1)]">
+          <NetworkGlobe packets={packets} />
+        </div>
+        <div className="col-span-1 glass-panel relative overflow-hidden rounded-xl border border-ts-border shadow-[0_0_30px_rgba(239,68,68,0.05)]">
+          <NetworkWaterfall packets={packets} />
+        </div>
+      </div>
+
+      <div className="flex gap-6 flex-1 min-h-[400px]">
         {/* Packet List */}
         <div className="flex-1 glass-panel flex flex-col min-w-0">
           <div className="grid grid-cols-12 gap-2 p-3 border-b border-[var(--ts-border)] text-xs font-bold text-ts-text-muted uppercase tracking-wider bg-black/20">

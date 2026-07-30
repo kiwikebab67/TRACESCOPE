@@ -148,7 +148,7 @@ const Dashboard = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const response = await axios.post(`${baseUrl}/api/cases`, newCaseData);
       
       // Update local storage and reload to switch context to new case
@@ -164,7 +164,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+        const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
         const response = await axios.get(`${baseUrl}/api/dashboard`);
         setStats(response.data);
       } catch (error) {

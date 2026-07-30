@@ -121,7 +121,7 @@ const Timeline = () => {
   const fetchTimeline = async () => {
     if (!activeCaseId) return;
     try {
-      const baseUrl = window.location.port === '5173' ? 'http://localhost:5000' : '';
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const res = await axios.get(`${baseUrl}/api/timeline?caseId=${activeCaseId}`);
       setLogs(res.data);
       setLoading(false);

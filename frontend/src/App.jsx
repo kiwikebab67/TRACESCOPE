@@ -19,9 +19,32 @@ import RegistryAnalysis from './pages/RegistryAnalysis';
 import UsbAnalysis from './pages/UsbAnalysis';
 import EmailInvestigation from './pages/EmailInvestigation';
 
+import ChainOfCustody from './pages/ChainOfCustody';
+import ThreatIntelligence from './pages/ThreatIntelligence';
+import HashDatabase from './pages/HashDatabase';
+import Reports from './pages/Reports';
+import BrowserArtifacts from './pages/BrowserArtifacts';
+import axios from 'axios';
+
+// Configure Axios Interceptor for JWT Auth globally
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('tracescope_token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 function App() {
   // Simple auth state for MVP
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('tracescope_token');
+  });
 
   // Helper to wrap routes with AppLayout and Auth check
   const ProtectedRoute = ({ children }) => {
@@ -51,15 +74,15 @@ function App() {
         <Route path="/ioc-scanner" element={<ProtectedRoute><IOCScanner /></ProtectedRoute>} />
         
         {/* Scaffolded Routes (Under Construction) */}
-        <Route path="/chain-of-custody" element={<ProtectedRoute><PlaceholderPage moduleName="Chain of Custody" /></ProtectedRoute>} />
+        <Route path="/chain-of-custody" element={<ProtectedRoute><ChainOfCustody /></ProtectedRoute>} />
         <Route path="/registry" element={<ProtectedRoute><RegistryAnalysis /></ProtectedRoute>} />
         <Route path="/logs" element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>} />
         <Route path="/usb" element={<ProtectedRoute><UsbAnalysis /></ProtectedRoute>} />
         <Route path="/email" element={<ProtectedRoute><EmailInvestigation /></ProtectedRoute>} />
-        <Route path="/browser" element={<ProtectedRoute><PlaceholderPage moduleName="Browser Artifacts" /></ProtectedRoute>} />
-        <Route path="/threat-intel" element={<ProtectedRoute><PlaceholderPage moduleName="Threat Intelligence" /></ProtectedRoute>} />
-        <Route path="/hashes" element={<ProtectedRoute><PlaceholderPage moduleName="Hash Database" /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><PlaceholderPage moduleName="Forensic Reports" /></ProtectedRoute>} />
+        <Route path="/browser" element={<ProtectedRoute><BrowserArtifacts /></ProtectedRoute>} />
+        <Route path="/threat-intel" element={<ProtectedRoute><ThreatIntelligence /></ProtectedRoute>} />
+        <Route path="/hashes" element={<ProtectedRoute><HashDatabase /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" />} />
