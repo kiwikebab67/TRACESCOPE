@@ -1,5 +1,6 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
 from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk
+from services.threat_intel import query_virustotal_hash, query_abuseipdb
 import os
 import hashlib
 import json 
@@ -871,13 +872,20 @@ def upload_evidence(current_user, case_id):
         elif filename.lower().endswith(('.exe', '.dll', '.bin', '.sys')):
             clear_old_logs("yara")
             malware_results = analyze_malware_file(save_path, filename)
+            
+            # Enrich with Threat Intelligence
+            vt_risk, vt_desc = query_virustotal_hash(calculated_md5)
+            
             for log_entry in malware_results:
+                final_risk = vt_risk if vt_risk == "High" else str(log_entry.get('risk_level', 'High'))
+                final_desc = str(log_entry.get('description', '')) + "\n\n" + vt_desc
+                
                 db_log = ForensicLog(
                     time_created=str(log_entry.get('time_created', 'Static Scan Timestamp')),
                     event_id=int(log_entry.get('event_id', 999)),
                     source=str(log_entry.get('source', f"YARA & Static Analyzer: {filename}")),
-                    description=str(log_entry.get('description', '')),
-                    risk_level=str(log_entry.get('risk_level', 'High')),
+                    description=final_desc,
+                    risk_level=final_risk,
                     tool_source="yara",
                     evidence_id=new_evidence.id
                 )
@@ -888,12 +896,21 @@ def upload_evidence(current_user, case_id):
             clear_old_logs("wireshark")
             packet_events = parse_pcap_capture(save_path)
             for pkt in packet_events:
+                # Threat Intel on destination IP
+                dest_ip = pkt.get('dest_ip', '')
+                abuse_risk, abuse_desc = query_abuseipdb(dest_ip) if dest_ip else ("Low", "")
+                
+                final_risk = abuse_risk if abuse_risk != "Low" else pkt.get('risk', 'Low')
+                final_desc = f"[{pkt.get('protocol', 'TCP')}] {pkt.get('info', '')}"
+                if abuse_desc:
+                     final_desc += f"\n\n{abuse_desc}"
+                
                 db_log = ForensicLog(
                     time_created=pkt.get('time', 'Unknown'),
                     event_id=pkt.get('id', 0),
-                    source=f"{pkt.get('source_ip', '')} -> {pkt.get('dest_ip', '')}",
-                    description=f"[{pkt.get('protocol', 'TCP')}] {pkt.get('info', '')}",
-                    risk_level=pkt.get('risk', 'Low'),
+                    source=f"{pkt.get('source_ip', '')} -> {dest_ip}",
+                    description=final_desc,
+                    risk_level=final_risk,
                     tool_source="wireshark",
                     evidence_id=new_evidence.id
                 )
