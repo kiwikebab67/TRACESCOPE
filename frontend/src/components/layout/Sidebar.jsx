@@ -43,7 +43,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ]
     },
     {
-      label: 'Cyber Forensics',
+      label: 'Digital Forensics',
       items: [
         { name: 'TraceScope AI', icon: BrainCircuit, path: '/ai-assistant' },
         { name: 'Malware Engine', icon: Bug, path: '/malware' },
