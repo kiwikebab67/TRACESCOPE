@@ -26,6 +26,9 @@ import Reports from './pages/Reports';
 import BrowserArtifacts from './pages/BrowserArtifacts';
 import axios from 'axios';
 
+// Configure Axios globally
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+
 // Configure Axios Interceptor for JWT Auth globally
 axios.interceptors.request.use(
   (config) => {
