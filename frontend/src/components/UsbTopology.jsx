@@ -139,7 +139,7 @@ const UsbTopology = ({ logs }) => {
             {getNodeIcon(node.type, node.suspicious)}
           </div>
           <div className={clsx(
-            "mt-2 text-[10px] font-mono whitespace-nowrap bg-[var(--ts-panel)]/90 dark:bg-black/90 px-2 py-1 rounded backdrop-blur-sm border text-center flex flex-col",
+            "absolute top-full left-1/2 -translate-x-1/2 mt-2 text-[10px] font-mono whitespace-nowrap bg-[var(--ts-panel)]/90 dark:bg-black/90 px-2 py-1 rounded backdrop-blur-sm border text-center flex flex-col pointer-events-none",
             node.suspicious ? "border-red-500/30" : "border-[var(--ts-border)]"
           )}>
             <span className={node.suspicious ? "text-red-400 font-bold" : "text-[var(--ts-text-muted)]"}>{node.label}</span>
