@@ -64,7 +64,16 @@ const Navbar = ({ toggleSidebar }) => {
           <Settings className="w-5 h-5" />
         </button>
 
-        <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-[var(--ts-blue)] to-[var(--ts-purple)] flex items-center justify-center text-white shadow-[0_0_10px_var(--ts-glow)] ml-2 cursor-pointer">
+        <div 
+          onClick={() => {
+            if (window.confirm("Are you sure you want to log out?")) {
+              localStorage.removeItem('tracescope_token');
+              localStorage.removeItem('activeCaseId');
+              window.location.href = '/login';
+            }
+          }}
+          title="Logout"
+          className="h-8 w-8 rounded-full bg-gradient-to-tr from-[var(--ts-blue)] to-[var(--ts-purple)] flex items-center justify-center text-white shadow-[0_0_10px_var(--ts-glow)] ml-2 cursor-pointer hover:opacity-80 transition-opacity">
           <User className="w-4 h-4" />
         </div>
       </div>
