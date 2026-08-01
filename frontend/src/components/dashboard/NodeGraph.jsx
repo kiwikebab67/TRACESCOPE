@@ -161,9 +161,9 @@ const NodeGraph = () => {
       <div 
         className="absolute inset-0 dark:opacity-30 opacity-15" 
         style={{
-          backgroundImage: 'radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.8) 100%), linear-gradient(to right, #00f0ff 1px, transparent 1px), linear-gradient(to bottom, #00f0ff 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.8) 100%), linear-gradient(to right, transparent 14.5px, #00f0ff 14.5px, #00f0ff 15.5px, transparent 15.5px), linear-gradient(to bottom, transparent 14.5px, #00f0ff 14.5px, #00f0ff 15.5px, transparent 15.5px)',
           backgroundSize: '100% 100%, 30px 30px, 30px 30px',
-          backgroundPosition: 'center center, calc(50% + 15px) calc(50% + 15px), calc(50% + 15px) calc(50% + 15px)'
+          backgroundPosition: 'center center'
         }}
       />
       
