@@ -81,3 +81,43 @@ body {
 
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(50%); transform: none; box-shadow: none; }
 
+/* Cyberpunk Animations */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.animate-scanline {
+  animation: scanline 3s linear infinite;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0) }
+  20% { transform: translate(-2px, 1px) }
+  40% { transform: translate(-1px, -1px) }
+  60% { transform: translate(2px, 1px) }
+  80% { transform: translate(1px, -1px) }
+  100% { transform: translate(0) }
+}
+
+.hover-glitch:hover {
+  animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+}
+
+.cyber-border {
+  position: relative;
+}
+.cyber-border::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 1px solid var(--ts-blue);
+  box-shadow: inset 0 0 10px var(--ts-glow), 0 0 10px var(--ts-glow);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.cyber-border:hover::after {
+  opacity: 1;
+}

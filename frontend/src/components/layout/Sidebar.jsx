@@ -23,15 +23,17 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Globe2
+  Globe2,
+  Crosshair
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const [isHovered, setIsHovered] = useState(false);
   const effectiveOpen = isOpen || isHovered;
+  
   const navGroups = [
     {
-      label: 'Main',
+      label: 'System Core',
       items: [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
         { name: 'Investigations', icon: Briefcase, path: '/investigations' },
@@ -41,38 +43,33 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ]
     },
     {
-      label: 'Forensic Suite',
+      label: 'Cyber Forensics',
       items: [
-        { name: 'AI Investigation', icon: BrainCircuit, path: '/ai-assistant' },
-        { name: 'Malware Analysis', icon: Bug, path: '/malware' },
-        { name: 'Memory Analysis', icon: Cpu, path: '/memory' },
-        { name: 'Registry Analysis', icon: Database, path: '/registry' },
-        { name: 'Log Analysis', icon: FileText, path: '/logs' },
-        { name: 'USB Analysis', icon: Usb, path: '/usb' },
-        { name: 'Network Analysis', icon: Network, path: '/network' },
-        { name: 'Email Investigation', icon: Mail, path: '/email' },
-        { name: 'Browser Artifacts', icon: Globe, path: '/browser' },
+        { name: 'TraceScope AI', icon: BrainCircuit, path: '/ai-assistant' },
+        { name: 'Malware Engine', icon: Bug, path: '/malware' },
+        { name: 'Memory Scan', icon: Cpu, path: '/memory' },
+        { name: 'Registry Hive', icon: Database, path: '/registry' },
+        { name: 'Event Logs', icon: FileText, path: '/logs' },
+        { name: 'USB History', icon: Usb, path: '/usb' },
+        { name: 'Packet Analysis', icon: Network, path: '/network' },
+        { name: 'Email Headers', icon: Mail, path: '/email' },
+        { name: 'Web History', icon: Globe, path: '/browser' },
       ]
     },
     {
-      label: 'Threat Intel',
+      label: 'Global Defense',
       items: [
-        { name: 'Global Threat Tracker', icon: Globe2, path: '/osint' },
-        { name: 'Threat Intelligence', icon: ShieldAlert, path: '/threat-intel' },
+        { name: 'Threat Tracker', icon: Globe2, path: '/osint' },
+        { name: 'Threat Intel', icon: ShieldAlert, path: '/threat-intel' },
         { name: 'IOC Scanner', icon: Scan, path: '/ioc-scanner' },
-        { name: 'Hash Database', icon: Hash, path: '/hashes' },
+        { name: 'Hash Matrix', icon: Hash, path: '/hashes' },
       ]
     },
     {
       label: 'Output',
       items: [
-        { name: 'Reports', icon: FileOutput, path: '/reports' },
-      ]
-    },
-    {
-      label: 'Resources',
-      items: [
-        { name: 'Victim Support', icon: Users, path: '/connect' },
+        { name: 'Auto-Report', icon: FileOutput, path: '/reports' },
+        { name: 'Victim Connect', icon: Users, path: '/connect' },
       ]
     }
   ];
@@ -82,28 +79,47 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       onMouseEnter={() => !isOpen && setIsHovered(true)}
       onMouseLeave={() => !isOpen && setIsHovered(false)}
       className={clsx(
-        "bg-[var(--ts-panel)] border-r border-[var(--ts-border)] flex flex-col h-full transition-all duration-300 ease-in-out z-30 shrink-0 overflow-y-auto relative",
-        effectiveOpen ? "w-64" : "w-16"
+        "relative flex flex-col h-full transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] z-30 shrink-0 overflow-y-auto bg-black/95 border-r border-[var(--ts-border)]",
+        effectiveOpen ? "w-[280px]" : "w-[72px]"
       )}
     >
-      <div className="h-16 flex items-center px-4 border-b border-ts-border shrink-0 sticky top-0 bg-white z-10">
-        <div className="flex items-center gap-3 w-full overflow-hidden">
-          <div className="w-8 h-8 rounded bg-gradient-to-br from-[var(--ts-purple)] to-[var(--ts-blue)] flex items-center justify-center text-white font-bold shrink-0 shadow-[0_0_10px_var(--ts-glow)]">
-            TS
+      {/* Cyber Grid Background */}
+      <div 
+        className="absolute inset-0 opacity-10 pointer-events-none"
+        style={{
+           backgroundImage: 'linear-gradient(var(--ts-blue) 1px, transparent 1px), linear-gradient(90deg, var(--ts-blue) 1px, transparent 1px)',
+           backgroundSize: '20px 20px',
+           backgroundPosition: 'center center'
+        }}
+      />
+      
+      {/* Neon Edge Highlight */}
+      <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-[var(--ts-blue)] to-transparent opacity-50 shadow-[0_0_10px_var(--ts-blue)] pointer-events-none" />
+
+      {/* Header */}
+      <div className="h-20 flex items-center px-5 border-b border-[var(--ts-border)]/50 shrink-0 sticky top-0 bg-black/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-4 w-full overflow-hidden">
+          <div className="relative shrink-0">
+             <div className="w-10 h-10 rounded-xl bg-black border border-[var(--ts-blue)] flex items-center justify-center text-[var(--ts-blue)] font-black shadow-[0_0_15px_var(--ts-glow)] overflow-hidden group">
+               <Crosshair className="w-6 h-6 animate-spin-slow group-hover:scale-110 transition-transform" />
+             </div>
           </div>
-          <div className={clsx("flex flex-col whitespace-nowrap transition-opacity duration-200", !effectiveOpen && "opacity-0")}>
-            <span className="font-bold text-[var(--ts-text)] tracking-wide text-sm text-gradient">TraceScope</span>
-            <span className="text-[0.65rem] text-ts-text-muted font-medium uppercase tracking-wider">DFIR Platform</span>
+          <div className={clsx("flex flex-col whitespace-nowrap transition-all duration-300", !effectiveOpen ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0")}>
+            <span className="font-black text-white tracking-[0.2em] text-lg hover-glitch cursor-default">TRACE<span className="text-[var(--ts-blue)]">SCOPE</span></span>
+            <span className="text-[10px] text-[var(--ts-blue)] font-mono uppercase tracking-[0.3em] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--ts-blue)] animate-pulse"></span>
+              DFIR ORCHESTRATOR
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 py-4 flex flex-col gap-6">
+      <div className="flex-1 py-6 flex flex-col gap-8 custom-scrollbar">
         {navGroups.map((group, idx) => (
-          <div key={idx} className="flex flex-col gap-1 px-3">
+          <div key={idx} className="flex flex-col gap-2 px-3">
             <span 
               className={clsx(
-                "text-[0.65rem] font-bold text-ts-text-muted uppercase tracking-wider px-3 mb-1 whitespace-nowrap transition-opacity duration-200",
+                "text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] px-4 mb-2 whitespace-nowrap transition-opacity duration-200 border-l border-gray-600 ml-1 pl-3",
                 !effectiveOpen && "opacity-0 hidden"
               )}
             >
@@ -114,33 +130,57 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 key={i}
                 to={item.path}
                 className={({ isActive }) => clsx(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 whitespace-nowrap group",
+                  "relative flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 whitespace-nowrap group overflow-hidden cyber-border",
                   isActive 
-                    ? "bg-gradient-to-r from-[var(--ts-blue)]/10 to-[var(--ts-pink)]/10 text-[var(--ts-blue)] font-semibold shadow-[inset_2px_0_0_var(--ts-blue)]" 
-                    : "text-ts-text-muted hover:bg-[var(--ts-border)] hover:text-[var(--ts-text)] font-medium"
+                    ? "bg-[var(--ts-blue)]/10 text-white font-bold" 
+                    : "text-gray-400 hover:text-white font-medium hover:bg-white/5"
                 )}
                 title={!effectiveOpen ? item.name : undefined}
               >
-                <item.icon className={clsx("w-5 h-5 shrink-0 transition-colors", "group-hover:text-[var(--ts-blue)] group-hover:drop-shadow-[0_0_5px_var(--ts-glow)]")} />
-                <span className={clsx("text-sm transition-opacity duration-200", !effectiveOpen && "opacity-0 hidden")}>
-                  {item.name}
-                </span>
+                {({ isActive }) => (
+                  <>
+                    {/* Active State Background Elements */}
+                    {isActive && (
+                       <>
+                         <div className="absolute inset-0 bg-gradient-to-r from-[var(--ts-blue)]/20 to-transparent pointer-events-none" />
+                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--ts-blue)] shadow-[0_0_15px_var(--ts-glow)]" />
+                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--ts-blue)]/10 to-transparent animate-scanline pointer-events-none" />
+                       </>
+                    )}
+                    
+                    <item.icon className={clsx(
+                        "w-5 h-5 shrink-0 transition-all duration-300 z-10", 
+                        isActive ? "text-[var(--ts-blue)] drop-shadow-[0_0_8px_var(--ts-glow)]" : "group-hover:text-[var(--ts-blue)] group-hover:scale-110"
+                    )} />
+                    
+                    <span className={clsx("text-sm tracking-wide transition-all duration-300 z-10", !effectiveOpen && "opacity-0 translate-x-4")}>
+                      {item.name}
+                    </span>
+                    
+                    {/* Hover Hexagon Accents */}
+                    {isActive && effectiveOpen && (
+                      <div className="absolute right-4 w-1 h-1 bg-[var(--ts-blue)] rotate-45 shadow-[0_0_5px_var(--ts-glow)]" />
+                    )}
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
         ))}
       </div>
 
-      {/* Collapse Toggle Button at bottom */}
-      <div className="p-4 border-t border-[var(--ts-border)] sticky bottom-0 bg-[var(--ts-panel)] z-10">
+      {/* Collapse Toggle */}
+      <div className="p-4 border-t border-[var(--ts-border)]/50 sticky bottom-0 bg-black/90 backdrop-blur-lg z-10">
          <button 
            onClick={() => setIsOpen(!isOpen)}
            className={clsx(
-             "w-full flex items-center p-2 rounded-lg text-ts-text-muted hover:text-[var(--ts-text)] hover:bg-[var(--ts-border)] transition-colors",
+             "w-full flex items-center p-3 rounded-xl text-gray-500 hover:text-[var(--ts-blue)] hover:bg-[var(--ts-blue)]/10 transition-all duration-300 cyber-border group",
              effectiveOpen ? "justify-end" : "justify-center"
            )}
          >
-           {isOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+           <div className={clsx("transition-transform duration-300", !isOpen && isHovered && "rotate-180")}>
+             {isOpen ? <ChevronLeft className="w-5 h-5 group-hover:drop-shadow-[0_0_5px_var(--ts-glow)]" /> : <ChevronRight className="w-5 h-5 group-hover:drop-shadow-[0_0_5px_var(--ts-glow)]" />}
+           </div>
          </button>
       </div>
     </aside>
