@@ -70,7 +70,7 @@ const EmailInvestigation = () => {
         description="The Email Engine parses raw .eml files to automatically extract sender/recipient details, malicious attachments, and embedded URLs or IP addresses used in phishing campaigns." 
       />
 
-      <div className="h-64 shrink-0 shadow-[0_0_30px_rgba(14,165,233,0.1)] rounded-xl overflow-hidden">
+      <div className="h-48 shrink-0 shadow-[0_0_30px_rgba(14,165,233,0.1)] rounded-xl overflow-hidden">
         <SocialConstellation logs={logs} />
       </div>
 

@@ -88,7 +88,7 @@ const NetworkGlobe = ({ packets }) => {
   }, [packets]);
 
   return (
-    <div ref={containerRef} className="w-full h-full absolute inset-0 bg-[var(--ts-panel)] dark:bg-black overflow-hidden flex items-center justify-center">
+    <div ref={containerRef} className="w-full h-full absolute inset-0 bg-[#020617] text-white overflow-hidden flex items-center justify-center">
       {/* Background glow */}
       <div className="absolute inset-0 bg-gradient-to-b from-[var(--ts-blue)]/10 to-transparent pointer-events-none z-10" />
       

@@ -144,8 +144,8 @@ const MemoryRadar = ({ logs }) => {
   }, [dimensions, logs]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative bg-[var(--ts-panel)] dark:bg-black flex items-center justify-center overflow-hidden rounded-xl border border-ts-border">
-      <div className="absolute inset-0 bg-gradient-radial from-transparent to-[var(--ts-panel)] dark:to-black pointer-events-none z-10 opacity-70" />
+    <div ref={containerRef} className="w-full h-full relative bg-[#020617] text-white overflow-hidden rounded-xl border border-ts-border flex items-center justify-center">
+      <div className="absolute inset-0 bg-gradient-radial from-transparent to-[#020617] pointer-events-none z-10 opacity-70" />
       <canvas 
         ref={canvasRef} 
         style={{ width: dimensions.width, height: dimensions.height }}

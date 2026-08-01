@@ -80,7 +80,7 @@ const Memory = () => {
       />
 
       {/* Visually Stunning Dashboards */}
-      <div className="h-56 shrink-0 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(14,165,233,0.1)]">
+      <div className="h-48 shrink-0 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(14,165,233,0.1)]">
         <MemoryRadar logs={logs} />
       </div>
 

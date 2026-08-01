@@ -105,8 +105,7 @@ const Network = () => {
         description="The Network Protocol Analyzer acts like a wiretap for the compromised system. It intercepts and reads every packet of data that traveled across the network, allowing you to see exactly who the computer was talking to, what files they were downloading, and if any data was being secretly stolen." 
       />
 
-      {/* Visually Stunning Dashboards */}
-      <div className="grid grid-cols-3 gap-6 h-56 shrink-0">
+      <div className="grid grid-cols-3 gap-6 h-48 shrink-0">
         <div className="col-span-2 glass-panel relative overflow-hidden rounded-xl border border-ts-border shadow-[0_0_30px_rgba(14,165,233,0.1)]">
           <NetworkGlobe packets={packets} />
         </div>

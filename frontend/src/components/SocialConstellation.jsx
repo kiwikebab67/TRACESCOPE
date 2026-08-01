@@ -84,7 +84,7 @@ const SocialConstellation = ({ logs }) => {
   };
 
   return (
-    <div className="w-full h-full relative bg-[var(--ts-panel)] dark:bg-black overflow-hidden rounded-xl border border-ts-border">
+    <div className="w-full h-full relative bg-[#020617] text-white overflow-hidden rounded-xl border border-ts-border">
       <div className="absolute inset-0 bg-gradient-radial from-[var(--ts-blue)]/5 to-transparent pointer-events-none z-10 opacity-70" />
       
       <svg className="w-full h-full absolute inset-0" viewBox="0 0 800 250" preserveAspectRatio="none">
@@ -136,7 +136,7 @@ const SocialConstellation = ({ logs }) => {
             {getNodeIcon(node.type, node.isMalicious)}
           </div>
           <div className={clsx(
-            "mt-2 text-[10px] font-mono whitespace-nowrap bg-[var(--ts-panel)]/80 dark:bg-black/80 px-2 py-1 rounded backdrop-blur-sm border text-center flex flex-col",
+            "absolute top-full left-1/2 -translate-x-1/2 mt-2 text-[10px] font-mono whitespace-nowrap bg-black/80 px-2 py-1 rounded backdrop-blur-sm border text-center flex flex-col pointer-events-none",
             node.isMalicious ? "border-red-500/30" : "border-[var(--ts-border)]"
           )}>
             <span className={node.isMalicious ? "text-red-400" : "text-[var(--ts-text)]"}>{node.label}</span>

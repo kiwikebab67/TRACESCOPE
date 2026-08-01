@@ -164,7 +164,7 @@ const UsbAnalysis = () => {
         description="The USB Engine parses Windows Registry Hives (.reg, .dat) specifically for USBSTOR keys to automatically locate records of unauthorized USB devices previously plugged into the system." 
       />
 
-      <div className="h-64 shrink-0 shadow-[0_0_30px_rgba(14,165,233,0.1)] rounded-xl overflow-hidden">
+      <div className="h-48 shrink-0 shadow-[0_0_30px_rgba(14,165,233,0.1)] rounded-xl overflow-hidden">
         <UsbTopology logs={logs} />
       </div>
 
