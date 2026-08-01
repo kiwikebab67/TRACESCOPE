@@ -163,7 +163,7 @@ const NodeGraph = () => {
         style={{
           backgroundImage: 'radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.8) 100%), linear-gradient(to right, #00f0ff 1px, transparent 1px), linear-gradient(to bottom, #00f0ff 1px, transparent 1px)',
           backgroundSize: '100% 100%, 30px 30px, 30px 30px',
-          backgroundPosition: 'center center, center center, center center'
+          backgroundPosition: 'center center, calc(50% + 15px) calc(50% + 15px), calc(50% + 15px) calc(50% + 15px)'
         }}
       />
       
@@ -354,12 +354,14 @@ const NodeGraph = () => {
 
             {/* Label (Always Visible and Glowing) */}
             <div 
-              className="mt-2 text-xs font-bold font-mono px-2 py-1 rounded bg-white/90 dark:bg-black/90 border whitespace-nowrap"
+              className="absolute top-full mt-3 text-[11px] font-bold font-mono px-2 py-1 rounded bg-white/90 dark:bg-black/90 border whitespace-nowrap pointer-events-none"
               style={{
                 borderColor: node.color,
                 color: node.color,
                 boxShadow: `0 0 10px ${node.color}40`,
-                textShadow: `0 0 8px ${node.color}90`
+                textShadow: `0 0 8px ${node.color}90`,
+                left: '50%',
+                transform: 'translateX(-50%)'
               }}
             >
               {node.label}
