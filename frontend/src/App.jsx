@@ -40,6 +40,19 @@ axios.interceptors.request.use(
   }
 );
 
+// Auto-logout on 401 Unauthorized (Expired Token)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('tracescope_token');
+      localStorage.removeItem('activeCaseId');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 function App() {
   // Simple auth state for MVP
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
