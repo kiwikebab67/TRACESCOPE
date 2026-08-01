@@ -67,8 +67,13 @@ const NodeGraph = () => {
 
     for (let i = 0; i < numNodes; i++) {
       const angle = (i / numNodes) * 2 * Math.PI;
-      const x = centerX + radius * Math.cos(angle);
-      const y = centerY + radius * Math.sin(angle);
+      const rawX = centerX + radius * Math.cos(angle);
+      const rawY = centerY + radius * Math.sin(angle);
+      
+      // Snap to 30px grid for perfect alignment with the background lines
+      const grid = 30;
+      const x = Math.round((rawX - centerX) / grid) * grid + centerX;
+      const y = Math.round((rawY - centerY) / grid) * grid + centerY;
       
       const isHighRisk = i === 2 || i === 4; // Highlight Log and Malware as High Risk
       const id = `node-${i}`;
@@ -157,7 +162,8 @@ const NodeGraph = () => {
         className="absolute inset-0 dark:opacity-30 opacity-15" 
         style={{
           backgroundImage: 'radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.8) 100%), linear-gradient(to right, #00f0ff 1px, transparent 1px), linear-gradient(to bottom, #00f0ff 1px, transparent 1px)',
-          backgroundSize: '100% 100%, 30px 30px, 30px 30px'
+          backgroundSize: '100% 100%, 30px 30px, 30px 30px',
+          backgroundPosition: 'center center, center center, center center'
         }}
       />
       
