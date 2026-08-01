@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       onMouseEnter={() => !isOpen && setIsHovered(true)}
       onMouseLeave={() => !isOpen && setIsHovered(false)}
       className={clsx(
-        "relative flex flex-col h-full transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] z-30 shrink-0 overflow-y-auto bg-black/95 border-r border-[var(--ts-border)]",
+        "relative flex flex-col h-full transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] z-30 shrink-0 overflow-y-auto bg-[var(--ts-panel)] border-r border-[var(--ts-border)] shadow-xl",
         effectiveOpen ? "w-[280px]" : "w-[72px]"
       )}
     >
@@ -97,15 +97,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-[var(--ts-blue)] to-transparent opacity-50 shadow-[0_0_10px_var(--ts-blue)] pointer-events-none" />
 
       {/* Header */}
-      <div className="h-20 flex items-center px-5 border-b border-[var(--ts-border)]/50 shrink-0 sticky top-0 bg-black/80 backdrop-blur-md z-10">
+      <div className="h-20 flex items-center px-5 border-b border-[var(--ts-border)] shrink-0 sticky top-0 bg-[var(--ts-panel)]/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-4 w-full overflow-hidden">
           <div className="relative shrink-0">
-             <div className="w-10 h-10 rounded-xl bg-black border border-[var(--ts-blue)] flex items-center justify-center text-[var(--ts-blue)] font-black shadow-[0_0_15px_var(--ts-glow)] overflow-hidden group">
+             <div className="w-10 h-10 rounded-xl bg-[var(--ts-bg)] border border-[var(--ts-blue)] flex items-center justify-center text-[var(--ts-blue)] font-black shadow-[0_0_15px_var(--ts-glow)] overflow-hidden group">
                <Crosshair className="w-6 h-6 animate-spin-slow group-hover:scale-110 transition-transform" />
              </div>
           </div>
           <div className={clsx("flex flex-col whitespace-nowrap transition-all duration-300", !effectiveOpen ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0")}>
-            <span className="font-black text-white tracking-[0.2em] text-lg hover-glitch cursor-default">TRACE<span className="text-[var(--ts-blue)]">SCOPE</span></span>
+            <span className="font-black text-[var(--ts-text)] tracking-[0.2em] text-lg hover-glitch cursor-default">TRACE<span className="text-[var(--ts-blue)]">SCOPE</span></span>
             <span className="text-[10px] text-[var(--ts-blue)] font-mono uppercase tracking-[0.3em] flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--ts-blue)] animate-pulse"></span>
               DFIR ORCHESTRATOR
@@ -119,7 +119,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <div key={idx} className="flex flex-col gap-2 px-3">
             <span 
               className={clsx(
-                "text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] px-4 mb-2 whitespace-nowrap transition-opacity duration-200 border-l border-gray-600 ml-1 pl-3",
+                "text-[9px] font-black text-ts-text-muted uppercase tracking-[0.3em] px-4 mb-2 whitespace-nowrap transition-opacity duration-200 border-l border-[var(--ts-border)] ml-1 pl-3",
                 !effectiveOpen && "opacity-0 hidden"
               )}
             >
@@ -132,8 +132,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 className={({ isActive }) => clsx(
                   "relative flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 whitespace-nowrap group overflow-hidden cyber-border",
                   isActive 
-                    ? "bg-[var(--ts-blue)]/10 text-white font-bold" 
-                    : "text-gray-400 hover:text-white font-medium hover:bg-white/5"
+                    ? "bg-[var(--ts-blue)]/10 text-[var(--ts-text)] font-bold" 
+                    : "text-ts-text-muted hover:text-[var(--ts-text)] font-medium hover:bg-[var(--ts-blue)]/5"
                 )}
                 title={!effectiveOpen ? item.name : undefined}
               >
@@ -170,11 +170,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       </div>
 
       {/* Collapse Toggle */}
-      <div className="p-4 border-t border-[var(--ts-border)]/50 sticky bottom-0 bg-black/90 backdrop-blur-lg z-10">
+      <div className="p-4 border-t border-[var(--ts-border)] sticky bottom-0 bg-[var(--ts-panel)]/90 backdrop-blur-lg z-10">
          <button 
            onClick={() => setIsOpen(!isOpen)}
            className={clsx(
-             "w-full flex items-center p-3 rounded-xl text-gray-500 hover:text-[var(--ts-blue)] hover:bg-[var(--ts-blue)]/10 transition-all duration-300 cyber-border group",
+             "w-full flex items-center p-3 rounded-xl text-ts-text-muted hover:text-[var(--ts-blue)] hover:bg-[var(--ts-blue)]/10 transition-all duration-300 cyber-border group",
              effectiveOpen ? "justify-end" : "justify-center"
            )}
          >
