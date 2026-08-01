@@ -731,6 +731,34 @@ def ioc_scan():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/api/osint/geoip", methods=["POST"])
+def osint_geoip():
+    data = request.json
+    ip_address = data.get("ip")
+    if not ip_address:
+        return jsonify({"status": "error", "message": "No IP address provided."}), 400
+        
+    from services.osint_api import get_geolocation
+    result = get_geolocation(ip_address)
+    if result.get("status") == "success":
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
+@app.route("/api/osint/dns", methods=["POST"])
+def osint_dns():
+    data = request.json
+    domain = data.get("domain")
+    if not domain:
+        return jsonify({"status": "error", "message": "No domain provided."}), 400
+        
+    from services.osint_api import get_dns_records
+    result = get_dns_records(domain)
+    if result.get("status") == "success":
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
 @app.route("/api/threat-intel/<int:case_id>")
 def threat_intel(case_id):
     case = Case.query.get_or_404(case_id)

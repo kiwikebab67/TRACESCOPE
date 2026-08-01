@@ -22,7 +22,8 @@ import {
   FileOutput,
   Users,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Globe2
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -56,6 +57,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       label: 'Threat Intel',
       items: [
+        { name: 'Global Threat Tracker', icon: Globe2, path: '/osint' },
         { name: 'Threat Intelligence', icon: ShieldAlert, path: '/threat-intel' },
         { name: 'IOC Scanner', icon: Scan, path: '/ioc-scanner' },
         { name: 'Hash Database', icon: Hash, path: '/hashes' },

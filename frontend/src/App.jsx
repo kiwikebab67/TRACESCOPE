@@ -24,6 +24,7 @@ import ThreatIntelligence from './pages/ThreatIntelligence';
 import HashDatabase from './pages/HashDatabase';
 import Reports from './pages/Reports';
 import BrowserArtifacts from './pages/BrowserArtifacts';
+import OSINT from './pages/OSINT';
 import axios from 'axios';
 
 // Configure Axios globally
@@ -81,6 +82,7 @@ function App() {
         {/* Modules to build next */}
         <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
         <Route path="/malware" element={<ProtectedRoute><Malware /></ProtectedRoute>} />
+        <Route path="/osint" element={<ProtectedRoute><OSINT /></ProtectedRoute>} />
         <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
         
         {/* Quad-Core Analytics Modules */}
