@@ -25,6 +25,7 @@ import HashDatabase from './pages/HashDatabase';
 import Reports from './pages/Reports';
 import BrowserArtifacts from './pages/BrowserArtifacts';
 import OSINT from './pages/OSINT';
+import MobileAnalysis from './pages/MobileAnalysis';
 import axios from 'axios';
 
 // Configure Axios globally
@@ -101,6 +102,7 @@ function App() {
         <Route path="/threat-intel" element={<ProtectedRoute><ThreatIntelligence /></ProtectedRoute>} />
         <Route path="/hashes" element={<ProtectedRoute><HashDatabase /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/mobile" element={<ProtectedRoute><MobileAnalysis /></ProtectedRoute>} />
         
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" />} />

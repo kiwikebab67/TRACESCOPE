@@ -759,6 +759,79 @@ def osint_dns():
     else:
         return jsonify(result), 400
 
+@app.route("/api/mobile/imei", methods=["POST"])
+def validate_imei():
+    data = request.json
+    imei = data.get("imei")
+    if not imei:
+        return jsonify({"status": "error", "message": "No IMEI provided."}), 400
+        
+    from services.mobile_forensics import analyze_imei
+    result = analyze_imei(imei)
+    return jsonify({"status": "success", "result": result})
+
+@app.route("/api/mobile/bluetooth", methods=["POST"])
+@token_required
+def parse_bluetooth(current_user):
+    if 'file' not in request.files:
+        return jsonify({'message': 'No file uploaded'}), 400
+        
+    file = request.files['file']
+    case_id = request.form.get('case_id')
+    
+    if not case_id:
+        return jsonify({'message': 'Case ID is required'}), 400
+        
+    if file.filename == '':
+        return jsonify({'message': 'No file selected'}), 400
+        
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Calculate hashes
+        md5_hash = calculate_md5(filepath)
+        sha256_hash = hashlib.sha256()
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(chunk)
+                
+        # Save Evidence record
+        new_evidence = Evidence(
+            filename=filename,
+            filepath=filepath,
+            hash_md5=md5_hash,
+            hash_sha256=sha256_hash.hexdigest(),
+            case_id=case_id
+        )
+        db.session.add(new_evidence)
+        db.session.commit()
+        
+        # Carve Bluetooth MACs authentically
+        from services.mobile_forensics import carve_bluetooth_macs
+        devices = carve_bluetooth_macs(filepath)
+        
+        # Log analysis
+        new_log = ForensicLog(
+            evidence_id=new_evidence.id,
+            tool_source='mobile_bluetooth',
+            event_id=8001,
+            source='Mobile: Bluetooth HCI Snoop',
+            description=f'Extracted {len(devices)} unique MAC addresses from {filename}',
+            risk_level='Medium' if len(devices) > 0 else 'Low',
+            time_created='0.00s'
+        )
+        db.session.add(new_log)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Bluetooth HCI Log parsed successfully.',
+            'devices': devices,
+            'evidence_id': new_evidence.id
+        })
+
 @app.route("/api/threat-intel/<int:case_id>")
 def threat_intel(case_id):
     case = Case.query.get_or_404(case_id)
