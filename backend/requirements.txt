@@ -11,3 +11,4 @@ capstone
 bcrypt
 PyJWT
 psycopg2-binary
+pyaxmlparser
