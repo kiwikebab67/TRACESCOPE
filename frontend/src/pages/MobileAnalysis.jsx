@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smartphone, Radio, Activity, ShieldAlert, Cpu, HardDrive, Wifi, Link, Info } from 'lucide-react';
+import { Smartphone, Radio, Activity, ShieldAlert, Cpu, HardDrive, Wifi, Link, Info, FileCode2, Code, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 
 // A radar visualization for bluetooth MACs
@@ -75,6 +75,7 @@ const ProximityRadar = ({ devices }) => {
 
 export default function MobileAnalysis() {
   const [activeCaseId, setActiveCaseId] = useState(null);
+  
   const [imei, setImei] = useState('');
   const [imeiResult, setImeiResult] = useState(null);
   const [isImeiLoading, setIsImeiLoading] = useState(false);
@@ -83,6 +84,16 @@ export default function MobileAnalysis() {
   const [file, setFile] = useState(null);
   const [isBtLoading, setIsBtLoading] = useState(false);
   const [btResult, setBtResult] = useState(null);
+
+  const [rootFile, setRootFile] = useState(null);
+  const [isRootLoading, setIsRootLoading] = useState(false);
+  const [rootResult, setRootResult] = useState(null);
+  const [rootError, setRootError] = useState(null);
+
+  const [apkFile, setApkFile] = useState(null);
+  const [isApkLoading, setIsApkLoading] = useState(false);
+  const [apkResult, setApkResult] = useState(null);
+  const [apkError, setApkError] = useState(null);
   
   useEffect(() => {
     const caseId = localStorage.getItem('activeCaseId');
@@ -95,7 +106,8 @@ export default function MobileAnalysis() {
     setImeiError(null);
     setImeiResult(null);
     try {
-      const res = await axios.post('/api/mobile/imei', { imei });
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.post(`${baseUrl}/api/mobile/imei`, { imei });
       setImeiResult(res.data.result);
     } catch (err) {
       setImeiError(err.response?.data?.message || 'Error validating IMEI');
@@ -114,7 +126,8 @@ export default function MobileAnalysis() {
     formData.append('case_id', activeCaseId);
     
     try {
-      const res = await axios.post('/api/mobile/bluetooth', formData, {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.post(`${baseUrl}/api/mobile/bluetooth`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setBtResult(res.data);
@@ -125,16 +138,62 @@ export default function MobileAnalysis() {
     }
   };
 
+  const handleRootUpload = async (e) => {
+    e.preventDefault();
+    if (!rootFile) return;
+    setIsRootLoading(true);
+    setRootError(null);
+    setRootResult(null);
+    const formData = new FormData();
+    formData.append('file', rootFile);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.post(`${baseUrl}/api/mobile/root`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setRootResult(res.data.result);
+    } catch (err) {
+      setRootError(err.response?.data?.message || 'Error processing build.prop');
+    } finally {
+      setIsRootLoading(false);
+    }
+  };
+
+  const handleApkUpload = async (e) => {
+    e.preventDefault();
+    if (!apkFile) return;
+    setIsApkLoading(true);
+    setApkError(null);
+    setApkResult(null);
+    const formData = new FormData();
+    formData.append('file', apkFile);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.post(`${baseUrl}/api/mobile/apk`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data.status === 'error') {
+        setApkError(res.data.message);
+      } else {
+        setApkResult(res.data);
+      }
+    } catch (err) {
+      setApkError(err.response?.data?.message || 'Error parsing APK file');
+    } finally {
+      setIsApkLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto font-sans animate-fade-in text-slate-800 dark:text-slate-200">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-            <Radio className="w-8 h-8 text-indigo-500" />
+            <Smartphone className="w-8 h-8 text-indigo-500" />
             Mobile & Wireless Forensics
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Cryptographic IMEI Validation & Authentic Bluetooth Proximity Analysis
+            Analyze Mobile Telemetry, Root Integrations, and APK Manifests.
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-200 dark:border-indigo-800 text-sm font-medium">
@@ -150,6 +209,7 @@ export default function MobileAnalysis() {
         </div>
       )}
 
+      {/* Row 1: IMEI and Bluetooth */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* IMEI MODULE */}
@@ -244,20 +304,13 @@ export default function MobileAnalysis() {
           </div>
           <div className="p-6 flex-1 flex flex-col">
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              Upload a raw <code className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">btsnoop_hci.log</code> or Android bugreport. The engine will carve the binary payload to extract all paired and proximate MAC addresses.
+              Upload a raw <code className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">btsnoop_hci.log</code>. The engine will carve the binary payload to extract all paired and proximate MAC addresses.
             </p>
             
             <form onSubmit={handleBtUpload} className="mb-6 flex gap-3">
               <input
                 type="file"
-                className="flex-1 block w-full text-sm text-slate-500 dark:text-slate-400
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-lg file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-indigo-50 file:text-indigo-700
-                  dark:file:bg-indigo-900/30 dark:file:text-indigo-400
-                  hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50
-                  border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer"
+                className="flex-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-400 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer"
                 onChange={(e) => setFile(e.target.files[0])}
                 disabled={!activeCaseId}
               />
@@ -282,15 +335,12 @@ export default function MobileAnalysis() {
                       {btResult.devices.length} Devices Found
                     </span>
                   </div>
-                  
                   <ProximityRadar devices={btResult.devices} />
-                  
                 </div>
               ) : (
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800/30 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex flex-col items-center justify-center p-6 text-center">
                   <Radio className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Waiting for HCI Log</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs">Upload a bluetooth trace file to visualize proximate devices</p>
                 </div>
               )}
             </div>
@@ -298,6 +348,158 @@ export default function MobileAnalysis() {
         </div>
 
       </div>
+      
+      {/* Row 2: APK Analyzer and Root Detection */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* ROOT DETECTION MODULE */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-indigo-500" />
+            <h2 className="font-semibold text-slate-900 dark:text-white">Root Integrity Scanner</h2>
+          </div>
+          <div className="p-6 flex-1 flex flex-col">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Upload a device <code className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">build.prop</code> file. The engine will scan for compromised system properties, test-keys, and insecure ADB configurations indicative of Root or custom ROMs.
+            </p>
+            
+            <form onSubmit={handleRootUpload} className="mb-6 flex gap-3">
+              <input
+                type="file"
+                className="flex-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-400 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer"
+                onChange={(e) => setRootFile(e.target.files[0])}
+                accept=".prop,.txt"
+              />
+              <button
+                type="submit"
+                disabled={!rootFile || isRootLoading}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+              >
+                {isRootLoading ? 'Scanning...' : 'Scan Integrity'}
+              </button>
+            </form>
+
+            {rootError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 text-sm mb-4">
+                {rootError}
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto min-h-[200px]">
+              {rootResult && (
+                <div className="animate-fade-in space-y-4">
+                  {/* Integrity Score */}
+                  <div className={`p-4 rounded-lg flex items-center justify-between ${rootResult.integrity_score < 100 ? 'bg-rose-500/10 border border-rose-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">System Integrity Score</p>
+                      <h3 className={`text-3xl font-bold ${rootResult.integrity_score < 100 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                        {rootResult.integrity_score} / 100
+                      </h3>
+                    </div>
+                    {rootResult.is_rooted ? (
+                      <div className="px-3 py-1 bg-rose-500 text-white rounded-full text-sm font-bold shadow-[0_0_15px_rgba(244,63,94,0.5)]">
+                        ROOTED
+                      </div>
+                    ) : (
+                      <div className="px-3 py-1 bg-emerald-500 text-white rounded-full text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.5)]">
+                        SECURE
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Findings */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Detailed Findings</h4>
+                    {rootResult.findings.map((finding, idx) => (
+                      <div key={idx} className={`p-3 rounded border text-sm ${finding.risk === 'High' ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800' : finding.risk === 'Medium' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                        <div className="font-mono font-semibold mb-1 flex items-center justify-between">
+                          <span className={finding.risk === 'High' ? 'text-rose-700 dark:text-rose-400' : finding.risk === 'Medium' ? 'text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}>
+                            {finding.indicator}
+                          </span>
+                          <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${finding.risk === 'High' ? 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-400' : finding.risk === 'Medium' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                            {finding.risk}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-400">{finding.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* APK STATIC ANALYZER */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+          <div className="border-b border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
+            <FileCode2 className="w-5 h-5 text-indigo-500" />
+            <h2 className="font-semibold text-slate-900 dark:text-white">APK Static Analyzer</h2>
+          </div>
+          <div className="p-6 flex-1 flex flex-col">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Upload an <code className="text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">.apk</code> file. The engine decodes the binary AndroidManifest.xml and highlights malicious and highly-abused permissions.
+            </p>
+            
+            <form onSubmit={handleApkUpload} className="mb-6 flex gap-3">
+              <input
+                type="file"
+                className="flex-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-400 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer"
+                onChange={(e) => setApkFile(e.target.files[0])}
+                accept=".apk"
+              />
+              <button
+                type="submit"
+                disabled={!apkFile || isApkLoading}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+              >
+                {isApkLoading ? 'Unpacking...' : 'Decompile'}
+              </button>
+            </form>
+
+            {apkError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-800 text-sm mb-4">
+                {apkError}
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-[200px]">
+              {apkResult && (
+                <div className="animate-fade-in">
+                  <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-white">{apkResult.app_name}</h3>
+                      <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">{apkResult.package_name}</p>
+                    </div>
+                    <div className={`px-3 py-1 rounded text-xs font-bold border ${apkResult.overall_risk === 'CRITICAL' ? 'bg-rose-900 text-rose-200 border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : apkResult.overall_risk === 'High' ? 'bg-orange-900 text-orange-200 border-orange-500' : 'bg-emerald-900 text-emerald-200 border-emerald-500'}`}>
+                      RISK: {apkResult.overall_risk}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4 text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-2 rounded">
+                    <Activity className="w-4 h-4 text-indigo-500" />
+                    {apkResult.risk_summary}
+                  </div>
+
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Requested Permissions</h4>
+                  <div className="space-y-1">
+                    {apkResult.permissions.map((p, idx) => (
+                      <div key={idx} className={`p-2 rounded text-xs font-mono flex items-center justify-between ${p.risk_level === 'CRITICAL' || p.risk_level === 'High' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800'}`}>
+                        <span>{p.permission.replace('android.permission.', '')}</span>
+                        {(p.risk_level === 'CRITICAL' || p.risk_level === 'High') && (
+                          <ShieldAlert className="w-3 h-3 text-rose-500" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }

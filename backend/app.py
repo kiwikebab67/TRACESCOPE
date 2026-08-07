@@ -759,6 +759,38 @@ def osint_dns():
     else:
         return jsonify(result), 400
 
+@app.route("/api/mobile/root", methods=["POST"])
+def check_root():
+    if 'file' in request.files:
+        file = request.files['file']
+        content = file.read().decode('utf-8', errors='ignore')
+    elif 'content' in request.json:
+        content = request.json.get('content')
+    else:
+        return jsonify({"status": "error", "message": "No build.prop file or content provided."}), 400
+        
+    from services.root_detector import parse_build_prop
+    result = parse_build_prop(content)
+    return jsonify({"status": "success", "result": result})
+
+@app.route("/api/mobile/apk", methods=["POST"])
+def parse_apk():
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No APK file uploaded'}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        from services.apk_analyzer import analyze_apk
+        result = analyze_apk(filepath)
+        return jsonify(result)
+
 @app.route("/api/mobile/imei", methods=["POST"])
 def validate_imei():
     data = request.json
