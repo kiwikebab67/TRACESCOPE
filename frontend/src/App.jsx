@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import AppLayout from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Investigations from './pages/Investigations';
@@ -26,6 +27,7 @@ import Reports from './pages/Reports';
 import BrowserArtifacts from './pages/BrowserArtifacts';
 import OSINT from './pages/OSINT';
 import MobileAnalysis from './pages/MobileAnalysis';
+import Web3Forensics from './pages/Web3Forensics';
 import axios from 'axios';
 
 // Configure Axios globally
@@ -70,44 +72,47 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={!isAuthenticated ? <Login onLogin={setIsAuthenticated} /> : <Navigate to="/" />} />
-        
-        {/* Core Routes */}
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/investigations" element={<ProtectedRoute><Investigations /></ProtectedRoute>} />
-        <Route path="/investigations/:caseId" element={<ProtectedRoute><CaseDetails /></ProtectedRoute>} />
-        <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
-        
-        {/* Modules to build next */}
-        <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
-        <Route path="/malware" element={<ProtectedRoute><Malware /></ProtectedRoute>} />
-        <Route path="/osint" element={<ProtectedRoute><OSINT /></ProtectedRoute>} />
-        <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
-        
-        {/* Quad-Core Analytics Modules */}
-        <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
-        <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
-        <Route path="/memory" element={<ProtectedRoute><Memory /></ProtectedRoute>} />
-        <Route path="/ioc-scanner" element={<ProtectedRoute><IOCScanner /></ProtectedRoute>} />
-        
-        {/* Scaffolded Routes (Under Construction) */}
-        <Route path="/chain-of-custody" element={<ProtectedRoute><ChainOfCustody /></ProtectedRoute>} />
-        <Route path="/registry" element={<ProtectedRoute><RegistryAnalysis /></ProtectedRoute>} />
-        <Route path="/logs" element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>} />
-        <Route path="/usb" element={<ProtectedRoute><UsbAnalysis /></ProtectedRoute>} />
-        <Route path="/email" element={<ProtectedRoute><EmailInvestigation /></ProtectedRoute>} />
-        <Route path="/browser" element={<ProtectedRoute><BrowserArtifacts /></ProtectedRoute>} />
-        <Route path="/threat-intel" element={<ProtectedRoute><ThreatIntelligence /></ProtectedRoute>} />
-        <Route path="/hashes" element={<ProtectedRoute><HashDatabase /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/mobile" element={<ProtectedRoute><MobileAnalysis /></ProtectedRoute>} />
-        
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/login" element={!isAuthenticated ? <Login onLogin={setIsAuthenticated} /> : <Navigate to="/" />} />
+          
+          {/* Core Routes */}
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/investigations" element={<ProtectedRoute><Investigations /></ProtectedRoute>} />
+          <Route path="/investigations/:caseId" element={<ProtectedRoute><CaseDetails /></ProtectedRoute>} />
+          <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
+          
+          {/* Modules to build next */}
+          <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
+          <Route path="/malware" element={<ProtectedRoute><Malware /></ProtectedRoute>} />
+          <Route path="/osint" element={<ProtectedRoute><OSINT /></ProtectedRoute>} />
+          <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
+          
+          {/* Quad-Core Analytics Modules */}
+          <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
+          <Route path="/network" element={<ProtectedRoute><Network /></ProtectedRoute>} />
+          <Route path="/memory" element={<ProtectedRoute><Memory /></ProtectedRoute>} />
+          <Route path="/ioc-scanner" element={<ProtectedRoute><IOCScanner /></ProtectedRoute>} />
+          
+          {/* Scaffolded Routes (Under Construction) */}
+          <Route path="/chain-of-custody" element={<ProtectedRoute><ChainOfCustody /></ProtectedRoute>} />
+          <Route path="/registry" element={<ProtectedRoute><RegistryAnalysis /></ProtectedRoute>} />
+          <Route path="/logs" element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>} />
+          <Route path="/usb" element={<ProtectedRoute><UsbAnalysis /></ProtectedRoute>} />
+          <Route path="/email" element={<ProtectedRoute><EmailInvestigation /></ProtectedRoute>} />
+          <Route path="/browser" element={<ProtectedRoute><BrowserArtifacts /></ProtectedRoute>} />
+          <Route path="/threat-intel" element={<ProtectedRoute><ThreatIntelligence /></ProtectedRoute>} />
+          <Route path="/hashes" element={<ProtectedRoute><HashDatabase /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/mobile" element={<ProtectedRoute><MobileAnalysis /></ProtectedRoute>} />
+          <Route path="/web3" element={<ProtectedRoute><Web3Forensics /></ProtectedRoute>} />
+          
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

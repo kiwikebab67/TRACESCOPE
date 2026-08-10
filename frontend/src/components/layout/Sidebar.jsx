@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Globe2,
   Crosshair,
-  Radio
+  Radio,
+  Wallet
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -56,6 +57,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { name: 'Email Headers', icon: Mail, path: '/email' },
         { name: 'Web History', icon: Globe, path: '/browser' },
         { name: 'Mobile Forensics', icon: Radio, path: '/mobile' },
+        { name: 'Web3 Forensics', icon: Wallet, path: '/web3' },
       ]
     },
     {

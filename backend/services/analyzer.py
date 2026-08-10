@@ -106,31 +106,22 @@ def analyze_malware_file(filepath, filename):
                 'time_created': 'Static Analysis'
             })
             
-        # Analyze YARA rules (simulated via static string matching for the test files)
+        # Admissible YARA Rule Scanning
         try:
-            with open(filepath, 'rb') as f:
-                raw_data = f.read()
-            yara_rules = {
-                b'evil-c2-server.com': 'Suspicious C2 Domain',
-                b'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*': 'EICAR Anti-Virus Test File',
-                b'Invoke-Expression (New-Object': 'PowerShell Injection Payload'
-            }
-            yara_matches = []
-            for pattern, rule_name in yara_rules.items():
-                if pattern in raw_data:
-                    yara_matches.append(rule_name)
-                    
-            if yara_matches:
+            from services.yara_scanner import get_yara_matches
+            yara_matches = get_yara_matches(filepath)
+            
+            for match in yara_matches:
                 results.append({
                     'event_id': 4003,
                     'source': 'YARA Signatures',
-                    'description': f'[YARA RULE] Matched signatures: {", ".join(yara_matches)}',
-                    'risk_level': 'High',
+                    'description': f'[YARA MATCH] {match["rule_id"]}: {match["description"]}. Tags: {", ".join(match["tags"])}',
+                    'risk_level': match['threat_level'],
                     'time_created': 'Static Analysis',
                     'tool_source': 'yara'
                 })
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"YARA Integration Error: {e}")
             
     except Exception as e:
         # Not a valid PE file, fallback to text/hash

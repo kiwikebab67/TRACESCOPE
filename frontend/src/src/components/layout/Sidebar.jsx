@@ -22,7 +22,8 @@ import {
   FileOutput,
   Users,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Wallet
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -51,6 +52,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { name: 'Network Analysis', icon: Network, path: '/network' },
         { name: 'Email Investigation', icon: Mail, path: '/email' },
         { name: 'Browser Artifacts', icon: Globe, path: '/browser' },
+        { name: 'Web3 Forensics', icon: Wallet, path: '/web3' },
       ]
     },
     {

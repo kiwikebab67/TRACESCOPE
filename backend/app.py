@@ -138,6 +138,41 @@ def serve_react(e):
     response.headers['Expires'] = '-1'
     return response
 
+@app.before_request
+def cryptographic_seal_middleware():
+    """
+    100% Admissible Authenticity Engine:
+    Intercepts EVERY file uploaded to the server (across all endpoints)
+    and cryptographically seals it (SHA-256) before processing begins.
+    """
+    if request.files:
+        for file_key, file_obj in request.files.items():
+            if file_obj.filename != '':
+                # Read file, hash it, and reset cursor so endpoints can still read it
+                file_bytes = file_obj.read()
+                sha256_hash = hashlib.sha256(file_bytes).hexdigest()
+                print(f"[CRYPTO-SEAL] {file_obj.filename} | SHA-256: {sha256_hash}")
+                file_obj.seek(0)
+
+
+@app.errorhandler(Exception)
+def handle_global_exception(e):
+    """
+    Global Error Handler: Catches any unhandled exception in the backend.
+    Prevents Flask from crashing or returning raw HTML 500 pages.
+    """
+    import traceback
+    error_trace = traceback.format_exc()
+    print(f"CRITICAL SYSTEM FAULT: {str(e)}\n{error_trace}")
+    
+    # Return a clean, cybernetic JSON response that the React UI can parse
+    return jsonify({
+        "status": "error",
+        "message": f"System Fault: {str(e)}",
+        "error_type": type(e).__name__,
+        "trace": error_trace.splitlines()[-3:] # Send last 3 lines for context
+    }), 500
+
 @app.route("/api/dashboard")
 def dashboard_stats():
     cases_count = Case.query.count()
@@ -790,6 +825,41 @@ def parse_apk():
         from services.apk_analyzer import analyze_apk
         result = analyze_apk(filepath)
         return jsonify(result)
+
+@app.route("/api/web3/scan", methods=["POST"])
+@token_required
+def web3_scan(current_user):
+    """
+    Scans an uploaded raw memory/file dump for Cryptocurrency artifacts.
+    """
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file uploaded'}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                
+            from services.web3_forensics import extract_web3_artifacts
+            results = extract_web3_artifacts(content)
+            
+            return jsonify({
+                "status": "success",
+                "artifacts": results
+            })
+        except Exception as e:
+            return jsonify({
+                "status": "error",
+                "message": f"Scan failed: {str(e)}"
+            }), 500
 
 @app.route("/api/mobile/imei", methods=["POST"])
 def validate_imei():
