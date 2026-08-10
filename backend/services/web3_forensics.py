@@ -165,22 +165,20 @@ def extract_web3_artifacts(content):
     artifacts = []
     
     # 1. Search for BIP39 Seed Phrases
-    # We look for sequences of 12 or 24 words separated by spaces.
-    words = content.split()
+    # Extract only alphabetic words, converting to lowercase
+    words = re.findall(r'\b[a-z]+\b', content.lower())
     
     # Simple sliding window
     for i in range(len(words) - 11):
         # Check for 12 word phrase
         phrase_12 = words[i:i+12]
-        if all(w.lower() in BIP39_WORDS for w in phrase_12):
-            # To reduce false positives, ensure they are entirely lowercase alphabetic
-            if all(w.isalpha() and w.islower() for w in phrase_12):
-                artifacts.append({
-                    "type": "BIP39_SEED_12",
-                    "threat": "CRITICAL",
-                    "description": "12-Word Cryptocurrency Recovery Phrase Discovered",
-                    "value": " ".join(phrase_12)
-                })
+        if all(w in BIP39_WORDS for w in phrase_12):
+            artifacts.append({
+                "type": "BIP39_SEED_12",
+                "threat": "CRITICAL",
+                "description": "12-Word Cryptocurrency Recovery Phrase Discovered",
+                "value": " ".join(phrase_12)
+            })
                 
     # 2. Search for Ethereum Private Keys (Hex, 64 chars)
     eth_pk_pattern = r'\b(0x)?[0-9a-fA-F]{64}\b'
@@ -198,14 +196,14 @@ def extract_web3_artifacts(content):
         })
         
     # 3. Metamask Vault Extraction
-    metamask_pattern = r'\{"data":"[^"]+","iv":"[^"]+","salt":"[^"]+"\}'
+    metamask_pattern = r'\{[\s\n]*"data"[\s\n]*:[\s\n]*"[^"]+"[\s\n]*,[\s\n]*"iv"[\s\n]*:[\s\n]*"[^"]+"[\s\n]*,[\s\n]*"salt"[\s\n]*:[\s\n]*"[^"]+"[\s\n]*\}'
     matches = re.finditer(metamask_pattern, content)
     for match in matches:
         artifacts.append({
             "type": "METAMASK_VAULT",
             "threat": "CRITICAL",
             "description": "Encrypted Metamask Vault JSON Structure (Requires password to crack)",
-            "value": match.group(0)
+            "value": match.group(0).strip()
         })
 
     # Deduplicate
