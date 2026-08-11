@@ -48,12 +48,9 @@ def perform_ela(filepath, quality=95, scale=15):
             max_diff = 1 # Avoid division by zero
             
         # Scale the difference image to make it visible
-        # Using fixed scale as standard for ELA
-        ela_image = ImageChops.multiply(ela_image, scale)
-        
-        # Enhance brightness programmatically
-        enhancer = Image.eval(ela_image, lambda x: x * 255.0 / max_diff if max_diff > 0 else x)
-        
+        # We calculate a dynamic scale factor based on the max difference, or fallback to fixed scale
+        scale_factor = 255.0 / max_diff if max_diff > 0 else scale
+        ela_image = Image.eval(ela_image, lambda x: x * scale_factor)        
         # We can apply a pseudo-color map using cv2 to make it a heatmap
         ela_np = np.array(ela_image)
         # Convert RGB to Grayscale for heatmap application
