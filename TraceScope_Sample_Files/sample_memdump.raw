@@ -1,0 +1,16 @@
+[SYSTEM MEMORY DUMP TRACESCOPE TEST]
+\x00\x00\x00\x00
+192.168.1.100 connected to 45.33.32.156
+Active network socket 10.0.0.5:4444
+\x00\x00
+Process execution: cmd.exe /c powershell.exe -w hidden
+Running service: svchost.exe
+System: lsass.exe
+\x00\x00\x00
+Browsing history: http://malicious-c2-server.com/payload.exe
+Download link: https://pastebin.com/raw/xYzA123
+\x00\x00
+MZ........This program cannot be run in DOS mode.
+\x00
+MZ........This program cannot be run in DOS mode.
+[END OF MEMORY DUMP]

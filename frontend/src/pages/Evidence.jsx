@@ -9,6 +9,17 @@ const Evidence = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArtifact, setSelectedArtifact] = useState(null);
+  
+  // Phase 1: Image ELA State
+  const [elaResult, setElaResult] = useState(null);
+  const [elaLoading, setElaLoading] = useState(false);
+  const [elaError, setElaError] = useState('');
+
+  // Clear ELA state when a new artifact is selected
+  useEffect(() => {
+    setElaResult(null);
+    setElaError('');
+  }, [selectedArtifact]);
 
   useEffect(() => {
     const fetchEvidence = async () => {
@@ -23,6 +34,38 @@ const Evidence = () => {
     };
     fetchEvidence();
   }, []);
+
+  const [activeTab, setActiveTab] = useState('repository');
+  const [elaFile, setElaFile] = useState(null);
+
+  const handleElaFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setElaFile(e.target.files[0]);
+    }
+  };
+
+  const handleElaScan = async () => {
+    if (!elaFile) return;
+    
+    setElaLoading(true);
+    setElaError('');
+    setElaResult(null);
+    
+    const formData = new FormData();
+    formData.append('file', elaFile);
+    
+    try {
+      const response = await axios.post('/api/v1/forensics/image-ela', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setElaResult(response.data);
+    } catch (err) {
+      console.error(err);
+      setElaError('Failed to run Error Level Analysis on the image.');
+    } finally {
+      setElaLoading(false);
+    }
+  };
 
   const getIconForFile = (filename) => {
     const ext = filename.split('.').pop().toLowerCase();
@@ -59,10 +102,30 @@ const Evidence = () => {
           <div>
             <h1 className="text-2xl font-bold text-gradient flex items-center gap-2">
               <Database className="w-6 h-6 text-[var(--ts-blue)]" />
-              Global Evidence Repository
+              Digital Evidence Locker
             </h1>
-            <p className="text-ts-text-muted text-sm mt-1">Centralized registry of all ingested forensic artifacts.</p>
+            <p className="text-ts-text-muted text-sm mt-1">Centralized registry & media forensics.</p>
           </div>
+          
+          <div className="flex bg-black/40 p-1 rounded-lg border border-[var(--ts-border)]">
+            <button 
+              onClick={() => setActiveTab('repository')}
+              className={clsx("px-4 py-2 rounded-md text-sm font-bold transition-all", activeTab === 'repository' ? "bg-[var(--ts-blue)] text-white" : "text-ts-text-muted hover:text-[var(--ts-text)]")}
+            >
+              Global Repository
+            </button>
+            <button 
+              onClick={() => setActiveTab('ela')}
+              className={clsx("px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2", activeTab === 'ela' ? "bg-[var(--ts-purple)] text-white" : "text-ts-text-muted hover:text-[var(--ts-text)]")}
+            >
+              <Eye className="w-4 h-4" /> Error Level Analysis
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'repository' ? (
+          <>
+            <div className="flex items-center justify-between shrink-0">
           <div className="flex gap-3">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-ts-text-muted" />
@@ -122,10 +185,74 @@ const Evidence = () => {
             )}
           </div>
         </div>
+        </>
+        ) : (
+          <div className="flex h-full gap-6">
+            <div className="w-1/3 glass-panel p-6 flex flex-col gap-6">
+              <h2 className="text-lg font-bold text-[var(--ts-text)]">Upload Image Evidence</h2>
+              
+              <div className="border-2 border-dashed border-[var(--ts-border)] rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[var(--ts-purple)] hover:bg-[var(--ts-purple)]/5 transition-all relative">
+                <input 
+                  type="file" 
+                  accept="image/jpeg, image/png, image/jpg"
+                  onChange={handleElaFileChange} 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                />
+                <Activity className="w-10 h-10 text-[var(--ts-text)] opacity-50 mb-3" />
+                <p className="text-sm font-medium text-[var(--ts-text)] opacity-80">
+                  {elaFile ? elaFile.name : "Drag & Drop Image (JPEG/PNG)"}
+                </p>
+              </div>
+              
+              {elaError && <div className="text-red-400 text-sm">{elaError}</div>}
+              
+              <button 
+                onClick={handleElaScan}
+                disabled={!elaFile || elaLoading}
+                className="relative z-10 w-full bg-[var(--ts-purple)] hover:bg-[var(--ts-purple)]/80 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(168,85,247,0.5)] disabled:shadow-none"
+              >
+                {elaLoading ? "ANALYZING..." : "RUN ELA"}
+              </button>
+            </div>
+            
+            <div className="flex-1 glass-panel p-6 overflow-y-auto">
+              {elaLoading ? (
+                <div className="h-full flex items-center justify-center text-[var(--ts-purple)] animate-pulse font-mono tracking-widest">
+                  GENERATING HEATMAP...
+                </div>
+              ) : elaResult ? (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold text-[var(--ts-text)] border-b border-[var(--ts-border)] pb-2">ELA Heatmap</h3>
+                  <div className="bg-black/5 dark:bg-black/30 rounded-xl border border-[var(--ts-border)] p-2">
+                    <img src={`data:image/jpeg;base64,${elaResult.ela_base64}`} alt="ELA Heatmap" className="w-full object-contain max-h-[400px] rounded-lg" />
+                  </div>
+                  
+                  {elaResult.exif_metadata && Object.keys(elaResult.exif_metadata).length > 0 && (
+                    <>
+                      <h3 className="text-lg font-bold text-[var(--ts-text)] border-b border-[var(--ts-border)] pb-2">EXIF Metadata</h3>
+                      <div className="bg-black/5 dark:bg-black/30 p-4 rounded-xl border border-[var(--ts-border)] max-h-64 overflow-y-auto font-mono text-xs">
+                        {Object.entries(elaResult.exif_metadata).map(([key, val]) => (
+                          <div key={key} className="grid grid-cols-3 py-1 border-b border-[var(--ts-border)]/50">
+                            <span className="text-[var(--ts-pink)]">{key}</span>
+                            <span className="col-span-2 text-[var(--ts-text)] break-all">{val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center text-ts-text-muted font-mono tracking-widest opacity-50">
+                  NO ELA ANALYSIS RUN
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detail Panel */}
-      {selectedArtifact && (
+      {activeTab === 'repository' && selectedArtifact && (
         <div className="w-96 glass-panel flex flex-col shrink-0 animate-in slide-in-from-right-8 duration-300 h-full">
           <div className="p-5 border-b border-[var(--ts-border)] bg-black/20 shrink-0">
             <div className="flex items-start gap-3">

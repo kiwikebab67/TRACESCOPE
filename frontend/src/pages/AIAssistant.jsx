@@ -14,6 +14,11 @@ const AIAssistant = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'deobfuscate'
+  const [payloadInput, setPayloadInput] = useState('');
+  const [deobfuscateResult, setDeobfuscateResult] = useState('');
+  const [isDeobfuscating, setIsDeobfuscating] = useState(false);
 
   useEffect(() => {
     fetchCases();
@@ -65,6 +70,28 @@ const AIAssistant = () => {
     }
   };
 
+  const handleDeobfuscate = async () => {
+    if (!payloadInput.trim()) return;
+    
+    setIsDeobfuscating(true);
+    setDeobfuscateResult('');
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const response = await axios.post(`${baseUrl}/api/v1/forensics/deobfuscate`, {
+        payload: payloadInput,
+        model: 'llama3'
+      });
+      
+      setDeobfuscateResult(response.data.analysis || 'No analysis provided.');
+    } catch (error) {
+      console.error('Failed to deobfuscate payload:', error);
+      setDeobfuscateResult('Failed to connect to local Ollama instance on localhost:11434.');
+    } finally {
+      setIsDeobfuscating(false);
+    }
+  };
+
   // Simple markdown-style parser for bold and newlines
   const formatMessage = (text) => {
     return text.split('\n').map((line, i) => (
@@ -86,26 +113,41 @@ const AIAssistant = () => {
           <p className="text-sm text-ts-text-muted mt-1">Chat with your forensic telemetry using the heuristic synthesis engine.</p>
         </div>
         
-        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-ts-border shadow-sm">
-          <span className="text-xs font-bold text-ts-text-muted uppercase">Context:</span>
-          <select 
-            value={activeCaseId} 
-            onChange={(e) => setActiveCaseId(e.target.value)}
-            className="bg-transparent border-none text-sm font-semibold text-ts-blue focus:ring-0 cursor-pointer"
+        <div className="flex bg-black/5 dark:bg-black/30 p-1 rounded-lg border border-[var(--ts-border)]">
+          <button 
+            onClick={() => setActiveTab('chat')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'chat' ? "bg-[var(--ts-purple)] text-white" : "text-ts-text-muted hover:text-[var(--ts-text)]"}`}
           >
-            <option value="" disabled>Select a Case</option>
-            {cases.map(c => (
-              <option key={c.id} value={c.id}>{c.case_number} - {c.title}</option>
-            ))}
-          </select>
+            <Bot className="w-4 h-4" /> Context Chat
+          </button>
+          <button 
+            onClick={() => setActiveTab('deobfuscate')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'deobfuscate' ? "bg-[var(--ts-blue)] text-white" : "text-ts-text-muted hover:text-[var(--ts-text)]"}`}
+          >
+            <Sparkles className="w-4 h-4" /> Code De-obfuscator
+          </button>
         </div>
       </div>
 
-      {/* Chat Window */}
-      <div className="glass-panel flex-1 flex flex-col overflow-hidden">
-        
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/30">
+      {activeTab === 'chat' ? (
+        <div className="glass-panel flex-1 flex flex-col overflow-hidden">
+          <div className="flex justify-end p-2 border-b border-ts-border bg-black/5">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-ts-border shadow-sm">
+              <span className="text-xs font-bold text-ts-text-muted uppercase">Context:</span>
+              <select 
+                value={activeCaseId} 
+                onChange={(e) => setActiveCaseId(e.target.value)}
+                className="bg-transparent border-none text-sm font-semibold text-ts-blue focus:ring-0 cursor-pointer"
+              >
+                <option value="" disabled>Select a Case</option>
+                {cases.map(c => (
+                  <option key={c.id} value={c.id}>{c.case_number} - {c.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/10">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm
@@ -163,6 +205,51 @@ const AIAssistant = () => {
           )}
         </div>
       </div>
+      ) : (
+        <div className="glass-panel flex-1 flex flex-col overflow-hidden p-6 gap-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-bold text-[var(--ts-text)]">Local AI Payload Analyzer</h2>
+            <p className="text-sm text-ts-text-muted">Paste obfuscated PowerShell, Bash, or Assembly code below. The local Ollama instance (llama3) will attempt to de-obfuscate it and summarize its intent completely offline.</p>
+          </div>
+          
+          <div className="flex gap-6 h-full">
+            <div className="flex-1 flex flex-col gap-4">
+              <textarea 
+                value={payloadInput}
+                onChange={(e) => setPayloadInput(e.target.value)}
+                placeholder="Paste obfuscated payload here..."
+                className="w-full flex-1 bg-black/5 dark:bg-black/30 border border-[var(--ts-border)] rounded-xl p-4 font-mono text-sm text-[var(--ts-text)] focus:ring-[var(--ts-blue)] focus:border-[var(--ts-blue)] transition-colors resize-none"
+              />
+              <button 
+                onClick={handleDeobfuscate}
+                disabled={!payloadInput.trim() || isDeobfuscating}
+                className="w-full bg-[var(--ts-blue)] hover:bg-[var(--ts-blue)]/80 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
+              >
+                {isDeobfuscating ? <Loader className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                {isDeobfuscating ? "DE-OBFUSCATING..." : "ANALYZE PAYLOAD"}
+              </button>
+            </div>
+            
+            <div className="flex-1 bg-black/5 dark:bg-black/40 border border-[var(--ts-border)] rounded-xl p-6 overflow-y-auto">
+              <h3 className="text-sm font-bold text-ts-text-muted uppercase tracking-wider mb-4 border-b border-[var(--ts-border)] pb-2">Analysis Results</h3>
+              {isDeobfuscating ? (
+                <div className="flex items-center gap-3 text-[var(--ts-blue)]">
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span className="font-mono text-sm">Querying local LLM...</span>
+                </div>
+              ) : deobfuscateResult ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none font-mono text-[13px] leading-relaxed text-[var(--ts-text)] whitespace-pre-wrap">
+                  {deobfuscateResult}
+                </div>
+              ) : (
+                <div className="text-ts-text-muted text-sm italic font-mono opacity-50 text-center mt-10">
+                  Awaiting payload for analysis...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

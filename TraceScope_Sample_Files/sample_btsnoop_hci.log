@@ -1,0 +1,28 @@
+btsnoop\x00\x00\x00\x00\x01\x00\x00\x03\xea
+[HCI_Event] LE Advertising Report
+Timestamp: 1718223405.112
+Event Type: ADV_IND
+Peer Address: 00:25:96:FF:AA:11 (Apple Device - iPhone 15)
+RSSI: -32 dBm
+Data: 02 01 06 11 06 ba 56 89 ...
+
+[HCI_Event] LE Advertising Report
+Timestamp: 1718223406.883
+Event Type: SCAN_RSP
+Peer Address: 94:65:2D:CC:44:88 (Samsung Device - Galaxy S24)
+RSSI: -45 dBm
+
+[HCI_Command] LE Create Connection
+Peer Address: F8:8A:5E:22:11:77 (Google Device - Pixel 8)
+
+[HCI_Event] Inquiry Result
+Num Responses: 2
+BD_ADDR: 00:1C:D8:1A:2B:3C (Apple Device - AirPods Pro)
+BD_ADDR: CC:B1:1A:99:88:77 (Samsung Device - Galaxy Watch)
+
+[Raw Hex Dump Intercept]
+0000  04 3e 2a 02 01 00 00 96 25 00 ...
+0010  12 34 56 78 9A BC ...
+Found string: "Target AirPods" -> 00:25:96:DE:AD:BE
+
+[End of Log]

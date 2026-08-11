@@ -1,0 +1,13 @@
+[SYSTEM HEX DUMP] 
+START ADDR: 0x0A44F00
+
+The user opened Notepad on Tuesday, Oct 24th. 
+Here are some fragments extracted from the page file...
+
+... "Don't forget to backup the phrase: abandon ability able about above absent absorb abstract absurd abuse access accident" ...
+
+... 0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b ... (some ETH debug key)
+
+... "data":"e1B5d9F8c6...","iv":"9a8b7c6d5e4f3a2b","salt":"1234abcd5678efgh"} ...
+
+END DUMP

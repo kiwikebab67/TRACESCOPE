@@ -59,7 +59,7 @@ const Web3Forensics = () => {
         {/* Upload Panel */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-[var(--ts-panel)] border border-[var(--ts-border)] rounded-2xl p-6 relative overflow-hidden group hover:border-[var(--ts-blue)] transition-all">
-             <div className="absolute inset-0 bg-gradient-to-br from-[var(--ts-blue)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+             <div className="absolute inset-0 bg-gradient-to-br from-[var(--ts-blue)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
              
              <h2 className="text-xl font-bold text-[var(--ts-text)] mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-[var(--ts-blue)]" />
@@ -90,7 +90,7 @@ const Web3Forensics = () => {
              <button 
                onClick={handleScan}
                disabled={!file || loading}
-               className="w-full mt-6 bg-[var(--ts-blue)] hover:bg-blue-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_var(--ts-glow)] disabled:shadow-none"
+               className="relative z-10 w-full mt-6 bg-[var(--ts-blue)] hover:bg-blue-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_var(--ts-glow)] disabled:shadow-none"
              >
                 {loading ? <Activity className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                 {loading ? "SCANNING SECTORS..." : "INITIATE DEEP SCAN"}

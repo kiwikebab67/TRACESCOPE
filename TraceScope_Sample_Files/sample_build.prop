@@ -1,0 +1,20 @@
+# begin build properties
+ro.build.id=N2G47H
+ro.build.display.id=Pixel 4a (Rooted)
+ro.build.version.incremental=eng.build.20230501
+ro.build.version.sdk=33
+ro.build.version.release=13
+ro.build.date=Mon May 1 12:00:00 UTC 2023
+ro.build.type=userdebug
+ro.build.tags=test-keys
+ro.product.model=Pixel 4a
+ro.product.brand=google
+ro.product.name=sunfish
+ro.product.device=sunfish
+ro.product.board=sunfish
+ro.product.cpu.abi=arm64-v8a
+ro.product.manufacturer=Google
+ro.secure=0
+ro.debuggable=1
+ro.adb.secure=0
+# end build properties

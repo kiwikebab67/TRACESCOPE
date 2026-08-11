@@ -701,22 +701,26 @@ def get_email():
 @app.route("/api/memory/latest")
 def get_latest_memory():
     case_id = request.args.get('caseId')
-    query = ForensicLog.query.filter_by(tool_source="volatility")
     
+    # 1. Find the latest memory evidence for the case
+    mem_ev = None
+    if case_id:
+        from sqlalchemy import or_
+        mem_ev = Evidence.query.filter(
+            Evidence.case_id == case_id,
+            or_(Evidence.filename.ilike('%.raw'), Evidence.filename.ilike('%.mem'), Evidence.filename.ilike('%.dmp'))
+        ).order_by(Evidence.id.desc()).first()
+        
+    query = ForensicLog.query.filter_by(tool_source="volatility")
     if case_id:
         query = query.join(Evidence).filter(Evidence.case_id == case_id)
         
     logs = query.order_by(ForensicLog.id.desc()).all()
     
-    if not logs:
-        return jsonify({
-            "status": "error", 
-            "analysis_logs": [],
-            "message": "No memory forensics data found. Please upload a .raw or .mem memory dump."
-        })
-        
     return jsonify({
         "status": "success",
+        "evidence_id": mem_ev.id if mem_ev else None,
+        "filename": mem_ev.filename if mem_ev else None,
         "analysis_logs": [{
             "id": log.id,
             "time_created": log.time_created,
@@ -1462,6 +1466,144 @@ def ai_chat():
     return jsonify({
         "response": f"I am actively monitoring **{case.case_number}**. I have parsed {len(high_risks)} critical anomalies and extracted {len(all_ips)} unique foreign IPs from the evidence graph.\n\nAsk me to **summarize the risks**, **list the C2 IPs**, or **analyze the malware**."
     })
+
+# --- ADVANCED DFIR MODULES (PHASE 1) ---
+
+@app.route('/api/v1/forensics/image-ela', methods=['POST'])
+@token_required
+def image_ela(current_user):
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file uploaded'}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        from services.image_forensics import perform_ela
+        result = perform_ela(filepath)
+        return jsonify(result)
+
+@app.route('/api/v1/forensics/emulate', methods=['POST'])
+@token_required
+def emulate_payload(current_user):
+    data = request.json
+    if not data or 'evidence_id' not in data:
+        return jsonify({'status': 'error', 'message': 'No evidence_id provided'}), 400
+        
+    ev = Evidence.query.get(data['evidence_id'])
+    if not ev:
+        return jsonify({'status': 'error', 'message': 'Evidence not found'}), 404
+        
+    filepath = ev.filepath
+    if not os.path.exists(filepath):
+        return jsonify({'status': 'error', 'message': 'File missing from disk'}), 404
+        
+    from services.speakeasy_engine import emulate_binary
+    result = emulate_binary(filepath)
+    
+    # Store results in the ForensicLog table so it persists in the sandbox view
+    if result.get('status') == 'success':
+        # Add a summary log
+        log = ForensicLog(
+            evidence_id=ev.id,
+            event_id=str(uuid.uuid4()),
+            source='Speakeasy Emulator',
+            description=result.get('raw_report_summary', 'Emulation complete'),
+            risk_level='High',
+            tool_source='sandbox_process'
+        )
+        db.session.add(log)
+        
+        # Add API call logs
+        for api in result.get('api_calls', [])[:10]: # Limit to 10 for UI brevity
+            db.session.add(ForensicLog(
+                evidence_id=ev.id,
+                event_id=str(uuid.uuid4()),
+                source='Speakeasy API Hook',
+                description=api,
+                risk_level='Medium',
+                tool_source='sandbox_process'
+            ))
+            
+        # Add Network logs
+        for net in result.get('network_connections', []):
+            db.session.add(ForensicLog(
+                evidence_id=ev.id,
+                event_id=str(uuid.uuid4()),
+                source='Speakeasy Network',
+                description=f"Attempted connection to {net}",
+                risk_level='Critical',
+                tool_source='sandbox_network'
+            ))
+            
+        # Add File drops
+        for fdrop in result.get('file_drops', []):
+            db.session.add(ForensicLog(
+                evidence_id=ev.id,
+                event_id=str(uuid.uuid4()),
+                source='Speakeasy File System',
+                description=f"+ {fdrop}",
+                risk_level='High',
+                tool_source='sandbox_file'
+            ))
+            
+        db.session.commit()
+        
+    return jsonify(result)
+
+@app.route('/api/v1/forensics/deobfuscate', methods=['POST'])
+@token_required
+def deobfuscate_payload(current_user):
+    data = request.json
+    if not data or 'payload' not in data:
+        return jsonify({'status': 'error', 'message': 'No payload provided'}), 400
+        
+    payload = data['payload']
+    model = data.get('model', 'llama3')
+    
+    from services.ollama_ai import analyze_payload_with_ollama
+    result = analyze_payload_with_ollama(payload, model=model)
+    return jsonify(result)
+
+@app.route('/api/v1/forensics/memory-scan', methods=['POST'])
+@token_required
+def memory_scan(current_user):
+    data = request.json
+    if not data or 'evidence_id' not in data:
+        return jsonify({'status': 'error', 'message': 'No evidence_id provided'}), 400
+        
+    ev = Evidence.query.get(data['evidence_id'])
+    if not ev:
+        return jsonify({'status': 'error', 'message': 'Evidence not found'}), 404
+        
+    filepath = ev.filepath
+    if not os.path.exists(filepath):
+        return jsonify({'status': 'error', 'message': 'Memory dump missing from disk'}), 404
+        
+    from services.memory_engine import run_memory_scan
+    result = run_memory_scan(filepath)
+    
+    # Store high-risk findings in the DB for the Timeline/Auto-Report
+    if result.get('status') == 'success':
+        # Log anomalous network connections
+        for net in result.get('network_connections', []):
+            if net.get('state') == 'ESTABLISHED':
+                db.session.add(ForensicLog(
+                    evidence_id=ev.id,
+                    event_id=str(uuid.uuid4()),
+                    source='Volatility 3 netscan',
+                    description=f"Active connection: {net.get('owner', 'Unknown')} ({net.get('pid', 'N/A')}) -> {net.get('foreign', 'Unknown')}",
+                    risk_level='High',
+                    tool_source='memory_network'
+                ))
+        db.session.commit()
+        
+    return jsonify(result)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))

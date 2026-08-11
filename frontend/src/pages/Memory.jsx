@@ -12,6 +12,9 @@ const Memory = () => {
   const [activeTab, setActiveTab] = useState('pslist');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [error, setError] = useState(null);
+  const [memoryEvidenceId, setMemoryEvidenceId] = useState(null);
+  const [memoryFilename, setMemoryFilename] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
   const activeCaseId = localStorage.getItem('activeCaseId');
 
   const fetchMemory = async () => {
@@ -19,6 +22,8 @@ const Memory = () => {
       const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const res = await axios.get(`${baseUrl}/api/memory/latest?caseId=${activeCaseId}`);
       setLogs(res.data.analysis_logs || []);
+      setMemoryEvidenceId(res.data.evidence_id);
+      setMemoryFilename(res.data.filename);
       if (res.data.status === 'error') {
         setError(res.data.message);
       } else {
@@ -29,6 +34,21 @@ const Memory = () => {
       console.error(err);
       setError("Failed to fetch memory data.");
       setLoading(false);
+    }
+  };
+
+  const handleRunScan = async () => {
+    if (!memoryEvidenceId) return;
+    setIsScanning(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      await axios.post(`${baseUrl}/api/v1/forensics/memory-scan`, { evidence_id: memoryEvidenceId });
+      await fetchMemory();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to run Volatility 3 scan.");
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -85,16 +105,25 @@ const Memory = () => {
       </div>
 
       <div className="flex-1 glass-panel flex flex-col min-h-[400px] relative overflow-hidden">
-        {/* Terminal Header */}
-        <div className="bg-black/80 px-4 py-2 flex items-center gap-2 border-b border-[var(--ts-border)]">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span className="text-xs text-gray-500 font-mono ml-2">volatility -f memdump.raw --profile=Win10x64_19041 {activeTab}</span>
+        <div className="bg-black/80 px-4 py-2 flex items-center justify-between border-b border-[var(--ts-border)]">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span className="text-xs text-gray-500 font-mono ml-2">volatility -f {memoryFilename || 'memdump.raw'} --profile=Win10x64_19041 {activeTab}</span>
+          </div>
+          
+          <button 
+            onClick={handleRunScan}
+            disabled={!memoryEvidenceId || isScanning}
+            className="px-3 py-1 bg-[var(--ts-purple)] hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-bold rounded-md flex items-center gap-2 transition-colors"
+          >
+            {isScanning ? "SCANNING..." : "RUN VOLATILITY"}
+          </button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 font-mono text-sm bg-black/40 custom-scrollbar">
-          {loading ? (
+          {loading || isScanning ? (
             <div className="text-[var(--ts-blue)] animate-pulse">Running Volatility Plugins...</div>
           ) : (
             <div className="space-y-4">

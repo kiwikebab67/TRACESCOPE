@@ -12,3 +12,7 @@ bcrypt
 PyJWT
 psycopg2-binary
 pyaxmlparser
+opencv-python
+Pillow
+speakeasy-emulator
+volatility3
