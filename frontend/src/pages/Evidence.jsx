@@ -58,7 +58,12 @@ const Evidence = () => {
       const response = await axios.post('/api/v1/forensics/image-ela', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setElaResult(response.data);
+      if (response.data.status === 'error') {
+        setElaError(response.data.message || 'Analysis failed on the server.');
+        setElaResult(null);
+      } else {
+        setElaResult(response.data);
+      }
     } catch (err) {
       console.error(err);
       setElaError('Failed to run Error Level Analysis on the image.');
@@ -187,11 +192,15 @@ const Evidence = () => {
         </div>
         </>
         ) : (
-          <div className="flex h-full gap-6">
-            <div className="w-1/3 glass-panel p-6 flex flex-col gap-6">
-              <h2 className="text-lg font-bold text-[var(--ts-text)]">Upload Image Evidence</h2>
+          <div className="flex flex-col lg:flex-row gap-6 h-full">
+            <div className="w-full lg:w-1/3 flex flex-col gap-4">
+              <h3 className="text-lg font-bold text-[var(--ts-text)] border-b border-[var(--ts-border)] pb-2">Upload Image Evidence</h3>
               
-              <div className="border-2 border-dashed border-[var(--ts-border)] rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[var(--ts-purple)] hover:bg-[var(--ts-purple)]/5 transition-all relative">
+              <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded-lg text-sm text-[var(--ts-text)] mb-2">
+                <span className="font-bold text-blue-400">What is this?</span> Error Level Analysis (ELA) detects digital manipulation by analyzing JPEG compression rates. Upload a suspected doctored image, and the ELA heatmap will highlight areas (like pasted objects) that were saved at different quality levels than the rest of the image.
+              </div>
+
+              <div className={clsx("border-2 border-dashed border-[var(--ts-border)] rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[var(--ts-purple)] hover:bg-[var(--ts-purple)]/5 transition-all relative")}>
                 <input 
                   type="file" 
                   accept="image/jpeg, image/png, image/jpg"

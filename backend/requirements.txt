@@ -12,7 +12,7 @@ bcrypt
 PyJWT
 psycopg2-binary
 pyaxmlparser
-opencv-python
+opencv-python-headless
 Pillow
 speakeasy-emulator
 volatility3
