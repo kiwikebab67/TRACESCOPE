@@ -63,13 +63,17 @@ with app.app_context():
         print(f"Migrated {len(legacy_cases)} legacy cases to the admin user.")
 
 # Serve React App
-@app.route('/')
-def index():
-    response = make_response(app.send_static_file('index.html'))
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '-1'
-    return response
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return app.send_static_file(path)
+    else:
+        response = make_response(app.send_static_file('index.html'))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '-1'
+        return response
 
 # Auth Middleware
 def token_required(f):
