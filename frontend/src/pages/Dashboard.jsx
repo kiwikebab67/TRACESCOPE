@@ -443,9 +443,6 @@ const Dashboard = () => {
           </table>
         </div>
       </div>
-
-    </div>
-    
       {/* Live eBPF Telemetry Feed */}
       <div className="glass-panel overflow-hidden mt-6">
         <div className="p-5 border-b border-[var(--ts-border)] flex justify-between items-center bg-[var(--ts-bg)]">
