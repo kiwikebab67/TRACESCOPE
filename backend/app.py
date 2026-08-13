@@ -1315,7 +1315,8 @@ def upload_evidence(current_user, case_id):
             for event in parsed_events:
                 db.session.add(ForensicLog(
                     evidence_id=new_evidence.id,
-                    event_id=str(uuid.uuid4()),
+                    event_id=event.get('event_id', 5001),
+                    time_created=event.get('time_created', 'N/A'),
                     source=event.get('source', 'AWS CloudTrail'),
                     description=event.get('description', ''),
                     risk_level=event.get('risk_level', 'Low'),
@@ -1672,7 +1673,8 @@ def ingest_ebpf_telemetry(current_user):
         
         db.session.add(ForensicLog(
             evidence_id=telemetry_ev.id,
-            event_id=str(uuid.uuid4()),
+            event_id=8001,
+            time_created=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
             source='eBPF Kernel Probe',
             description=description,
             risk_level=risk_level,
