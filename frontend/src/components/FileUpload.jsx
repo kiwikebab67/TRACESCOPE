@@ -27,7 +27,8 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
       'text/xml': ['.evtx'],
       'message/rfc822': ['.eml'],
       'text/plain': ['.txt', '.log', '.reg', '.ps1'],
-      'application/vnd.sqlite3': ['.sqlite', '.sqlite3', '.db']
+      'application/vnd.sqlite3': ['.sqlite', '.sqlite3', '.db'],
+      'application/json': ['.json']
     }
   });
 
@@ -96,7 +97,7 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
                 {isDragActive ? "Drop the file here..." : "Drag & drop an artifact, or click to select"}
               </p>
               <p className="text-xs text-ts-text-muted mt-2">
-                Supported: .raw, .mem, .pcap, .evtx, .exe, .dll, .ps1, .lnk, .pf, .txt, .reg, .eml, .db
+                Supported: .raw, .mem, .pcap, .evtx, .exe, .dll, .ps1, .lnk, .pf, .txt, .reg, .eml, .db, .json
               </p>
             </div>
           ) : (

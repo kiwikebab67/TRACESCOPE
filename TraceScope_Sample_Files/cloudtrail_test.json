@@ -1,0 +1,94 @@
+{
+  "Records": [
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAJ45Q7YFFAREXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Alice",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "userName": "Alice"
+      },
+      "eventTime": "2026-08-14T01:23:45Z",
+      "eventSource": "signin.amazonaws.com",
+      "eventName": "ConsoleLogin",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0",
+      "requestParameters": null,
+      "responseElements": {
+        "ConsoleLogin": "Success"
+      },
+      "additionalEventData": {
+        "LoginTo": "https://console.aws.amazon.com/console/home",
+        "MobileVersion": "No",
+        "MFAUsed": "No"
+      },
+      "eventID": "4b6f634b-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "readOnly": false,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "123456789012",
+      "eventCategory": "Management"
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAJ45Q7YFFAREXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Alice",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "userName": "Alice"
+      },
+      "eventTime": "2026-08-14T01:25:10Z",
+      "eventSource": "cloudtrail.amazonaws.com",
+      "eventName": "StopLogging",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.50",
+      "userAgent": "aws-cli/2.0.0 Python/3.8.2 Linux/5.4.0",
+      "requestParameters": {
+        "name": "arn:aws:cloudtrail:us-east-1:123456789012:trail/DefaultTrail"
+      },
+      "responseElements": null,
+      "eventID": "12345678-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "readOnly": false,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "123456789012",
+      "eventCategory": "Management"
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAJ45Q7YFFAREXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Bob",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "userName": "Bob"
+      },
+      "eventTime": "2026-08-14T02:00:00Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetObject",
+      "awsRegion": "us-west-2",
+      "sourceIPAddress": "198.51.100.12",
+      "userAgent": "Boto3/1.15.0 Python/3.7.3",
+      "requestParameters": {
+        "bucketName": "company-confidential-data",
+        "Host": "s3.us-west-2.amazonaws.com",
+        "key": "financial_report_Q3.pdf"
+      },
+      "responseElements": null,
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "eventID": "abcdef01-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": false,
+      "recipientAccountId": "123456789012",
+      "eventCategory": "Data"
+    }
+  ]
+}
