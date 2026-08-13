@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FileText, ShieldAlert, ShieldCheck, UploadCloud, Terminal } from 'lucide-react';
+import { FileText, ShieldAlert, ShieldCheck, UploadCloud, Terminal, Cloud } from 'lucide-react';
 import clsx from 'clsx';
 import InfoBox from '../components/common/InfoBox';
 import FileUpload from '../components/FileUpload';
@@ -47,9 +47,9 @@ const LogAnalysis = () => {
         <div>
           <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
             <FileText className="w-8 h-8 text-[var(--ts-blue)]" />
-            Security Log Analysis (EVTX)
+            Log Analysis (EVTX & CloudTrail)
           </h1>
-          <p className="text-ts-text-muted mt-1">Parse Windows Event Logs for authentication anomalies and lateral movement.</p>
+          <p className="text-ts-text-muted mt-1">Parse Windows Event Logs and AWS CloudTrail logs for authentication anomalies and lateral movement.</p>
         </div>
         <div className="flex gap-2 items-center">
           <button 
@@ -66,7 +66,7 @@ const LogAnalysis = () => {
 
       <InfoBox 
         title="What does this do?" 
-        description="The Security Log Engine parses Windows Event Logs (.evtx) to automatically detect malicious login attempts, privilege escalations, and defense evasion (like someone clearing the audit log to hide their tracks)." 
+        description="The Security Log Engine parses Windows Event Logs (.evtx) and AWS CloudTrail Logs (.json) to automatically detect malicious login attempts, privilege escalations, and defense evasion." 
       />
 
       <div className="flex-1 glass-panel flex flex-col min-h-0 relative overflow-hidden">
@@ -93,8 +93,9 @@ const LogAnalysis = () => {
               {logs.map((log, i) => (
                 <div key={i} className={clsx("p-4 rounded border", log.risk_level === 'High' ? "bg-red-950/30 border-red-500/50" : log.risk_level === 'Medium' ? "bg-yellow-950/30 border-yellow-500/50" : "bg-black/40 border-[var(--ts-border)]")}>
                   <div className="flex items-center gap-3 mb-2">
-                    {log.risk_level === 'High' ? <ShieldAlert className="w-5 h-5 text-red-500" /> : log.risk_level === 'Medium' ? <ShieldAlert className="w-5 h-5 text-yellow-500" /> : <ShieldCheck className="w-5 h-5 text-green-500" />}
+                    {log.source.includes('Cloud') ? <Cloud className="w-5 h-5 text-blue-400" /> : (log.risk_level === 'High' ? <ShieldAlert className="w-5 h-5 text-red-500" /> : log.risk_level === 'Medium' ? <ShieldAlert className="w-5 h-5 text-yellow-500" /> : <ShieldCheck className="w-5 h-5 text-green-500" />)}
                     <span className="text-gray-400 text-xs">[{log.time_created}]</span>
+                    {log.source.includes('Cloud') && <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">AWS CLOUD</span>}
                     <span className="text-[var(--ts-blue)] font-bold">Event ID: {log.event_id}</span>
                   </div>
                   <div className={clsx("whitespace-pre-wrap", log.risk_level === 'High' ? "text-red-200" : log.risk_level === 'Medium' ? "text-yellow-200" : "text-green-400")}>

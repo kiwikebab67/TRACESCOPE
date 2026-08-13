@@ -445,6 +445,37 @@ const Dashboard = () => {
       </div>
 
     </div>
+    
+      {/* Live eBPF Telemetry Feed */}
+      <div className="glass-panel overflow-hidden mt-6">
+        <div className="p-5 border-b border-[var(--ts-border)] flex justify-between items-center bg-[var(--ts-bg)]">
+          <h3 className="text-sm font-bold text-[var(--ts-text)] uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            Live Kernel Telemetry (eBPF)
+          </h3>
+          <button className="text-xs text-[var(--ts-blue)] font-medium hover:underline">Configure Hooks</button>
+        </div>
+        <div className="h-64 overflow-y-auto bg-black/80 font-mono text-xs p-4 custom-scrollbar">
+          {stats.recent_activities.filter(a => a.target === 'ebpf_telemetry').length > 0 ? (
+            stats.recent_activities.filter(a => a.target === 'ebpf_telemetry').map((log, i) => (
+              <div key={i} className="mb-2 flex items-start gap-3 border-b border-gray-800/50 pb-2">
+                <span className="text-green-500 shrink-0">[{log.time}]</span>
+                <span className="text-[var(--ts-blue)] shrink-0">[KERNEL]</span>
+                <span className={log.status === 'High' ? 'text-red-400' : 'text-gray-300'}>
+                  {log.action}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-500 flex items-center justify-center h-full flex-col gap-2">
+              <Activity className="w-8 h-8 opacity-20" />
+              <span>Listening for kernel events via simulated eBPF hooks...</span>
+            </div>
+          )}
+        </div>
+      </div>
+      
+    </div>
   );
 };
 

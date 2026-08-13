@@ -474,3 +474,41 @@ def parse_lnk(filepath):
     except Exception as e:
         events.append({"event_id": 999, "source": "LNK Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
     return events
+
+def parse_cloudtrail(filepath):
+    """
+    Parses AWS CloudTrail JSON logs for cloud forensics.
+    """
+    import json
+    events = []
+    try:
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+            records = data.get('Records', [])
+            for rec in records:
+                event_name = rec.get('eventName', 'Unknown')
+                source_ip = rec.get('sourceIPAddress', 'Unknown')
+                
+                user_identity = 'Unknown'
+                if isinstance(rec.get('userIdentity'), dict):
+                    user_identity = rec['userIdentity'].get('arn', rec['userIdentity'].get('userName', 'Unknown'))
+                
+                time_created = rec.get('eventTime', 'N/A')
+                
+                risk = "Low"
+                # Evaluate high-risk cloud indicators
+                if event_name in ['ConsoleLogin', 'DeleteTrail', 'StopLogging', 'UpdateTrail', 'CreateAccessKey']:
+                    risk = "High"
+                elif 'AccessDenied' in str(rec.get('errorCode', '')):
+                    risk = "Medium"
+                
+                events.append({
+                    "event_id": 5001,
+                    "source": "AWS CloudTrail",
+                    "description": f"[{event_name}] Caller: {user_identity} | IP: {source_ip}",
+                    "risk_level": risk,
+                    "time_created": time_created.replace('T', ' ').replace('Z', '')
+                })
+    except Exception as e:
+        events.append({"event_id": 999, "source": "CloudTrail Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
+    return events

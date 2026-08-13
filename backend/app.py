@@ -1,5 +1,5 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
-from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk, parse_cloudtrail
 from services.threat_intel import query_virustotal_hash, query_abuseipdb
 import os
 import hashlib
@@ -1308,6 +1308,20 @@ def upload_evidence(current_user, case_id):
                 db.session.add(db_log)
             db.session.commit()
             
+        elif filename.lower().endswith('.json'):
+            clear_old_logs("cloudtrail")
+            parsed_events = parse_cloudtrail(save_path)
+            for event in parsed_events:
+                db.session.add(ForensicLog(
+                    evidence_id=new_evidence.id,
+                    event_id=str(uuid.uuid4()),
+                    source=event.get('source', 'AWS CloudTrail'),
+                    description=event.get('description', ''),
+                    risk_level=event.get('risk_level', 'Low'),
+                    tool_source='cloudtrail'
+                ))
+            db.session.commit()
+
         elif filename.lower().endswith('.pf'):
             clear_old_logs("prefetch")
             pf_events = parse_prefetch(save_path)
@@ -1608,6 +1622,70 @@ def memory_scan(current_user):
         db.session.commit()
         
     return jsonify(result)
+
+@app.route('/api/v1/telemetry/ebpf', methods=['POST'])
+@token_required
+def ingest_ebpf_telemetry(current_user):
+    data = request.json
+    if not data or 'events' not in data:
+        return jsonify({'status': 'error', 'message': 'No events provided'}), 400
+        
+    case_id = data.get('case_id')
+    if not case_id:
+        return jsonify({'status': 'error', 'message': 'case_id required'}), 400
+        
+    case = Case.query.get(case_id)
+    if not case:
+        return jsonify({'status': 'error', 'message': 'Case not found'}), 404
+        
+    # Create a dummy "Telemetry Stream" evidence artifact to attach logs to
+    telemetry_ev = Evidence.query.filter_by(case_id=case.id, artifact_type='ebpf_stream').first()
+    if not telemetry_ev:
+        telemetry_ev = Evidence(
+            case_id=case.id,
+            filename='eBPF_Telemetry_Stream',
+            filepath='/dev/null',
+            file_hash='virtual_stream',
+            artifact_type='ebpf_stream'
+        )
+        db.session.add(telemetry_ev)
+        db.session.commit()
+        
+    ingested_count = 0
+    for evt in data['events']:
+        syscall = evt.get('syscall', 'Unknown')
+        process = evt.get('process_name', 'Unknown')
+        pid = evt.get('pid', '0')
+        details = evt.get('details', '')
+        
+        # Determine risk based on syscall and process behavior
+        risk_level = 'Low'
+        if syscall == 'sys_enter_execve' and ('/tmp/' in details or 'curl' in process or 'wget' in process or 'bash' in process):
+            risk_level = 'High'
+        elif syscall == 'tcp_v4_connect' and ('nc ' in process or 'nmap' in process):
+            risk_level = 'High'
+        elif 'root' in str(evt.get('user', '')) and syscall in ['sys_enter_ptrace', 'sys_enter_bpf']:
+            risk_level = 'High'
+            
+        description = f"[eBPF: {syscall}] Process {process} (PID: {pid}) executed action: {details}"
+        
+        db.session.add(ForensicLog(
+            evidence_id=telemetry_ev.id,
+            event_id=str(uuid.uuid4()),
+            source='eBPF Kernel Probe',
+            description=description,
+            risk_level=risk_level,
+            tool_source='ebpf_telemetry'
+        ))
+        ingested_count += 1
+        
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success', 
+        'message': f'Ingested {ingested_count} eBPF events.',
+        'events_processed': ingested_count
+    })
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
