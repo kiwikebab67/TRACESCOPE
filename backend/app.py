@@ -610,7 +610,7 @@ def get_logs():
     if not case_id:
         return jsonify({"status": "error", "message": "No Case ID provided."}), 400
     
-    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id, ForensicLog.tool_source == 'logs').order_by(ForensicLog.id.desc()).all()
+    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id, ForensicLog.tool_source.in_(['logs', 'cloudtrail'])).order_by(ForensicLog.id.desc()).all()
     
     return jsonify({
         "status": "success",
