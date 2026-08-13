@@ -21,7 +21,7 @@ const LogAnalysis = () => {
     
     try {
       const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
-      const res = await axios.get(`${baseUrl}/api/logs?caseId=${activeCaseId}`);
+      const res = await axios.get(`${baseUrl}/api/logs?caseId=${activeCaseId}&t=${new Date().getTime()}`);
       if (res.data.status === 'success') {
         setLogs(res.data.analysis_logs || []);
         setCurrentEvidence(res.data.current_evidence);
