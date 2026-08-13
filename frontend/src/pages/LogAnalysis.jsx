@@ -8,6 +8,7 @@ import FileUpload from '../components/FileUpload';
 const LogAnalysis = () => {
   const [logs, setLogs] = useState([]);
   const [currentEvidence, setCurrentEvidence] = useState(null);
+  const [currentEvidenceHash, setCurrentEvidenceHash] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -25,6 +26,7 @@ const LogAnalysis = () => {
       if (res.data.status === 'success') {
         setLogs(res.data.analysis_logs || []);
         setCurrentEvidence(res.data.current_evidence);
+        setCurrentEvidenceHash(res.data.current_evidence_hash);
         setError(null);
       } else {
         setError(res.data.message);
@@ -79,26 +81,40 @@ const LogAnalysis = () => {
             <span className="text-xs text-gray-500 font-mono ml-2">sysmon -i security.evtx</span>
           </div>
           {currentEvidence && (
-            <div className="text-xs font-mono text-[var(--ts-blue)] flex items-center gap-2">
-              <span className="text-gray-500">Target Evidence:</span> {currentEvidence}
+            <div className="flex flex-col items-end gap-1">
+              <div className="text-xs font-mono text-[var(--ts-blue)] flex items-center gap-2">
+                <span className="text-gray-500 dark:text-gray-400">Target Evidence:</span> {currentEvidence}
+              </div>
+              {currentEvidenceHash && (
+                <div className="text-[10px] font-mono text-[var(--ts-pink)] flex items-center gap-1 opacity-80" title="Cryptographically Sealed SHA-256 Hash">
+                  <ShieldCheck className="w-3 h-3" />
+                  {currentEvidenceHash.substring(0, 32)}...
+                </div>
+              )}
             </div>
           )}
         </div>
         
-        <div className="flex-1 overflow-y-auto p-6 font-mono text-sm bg-black/40 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 font-mono text-sm bg-gray-50 dark:bg-black/40 custom-scrollbar">
           {loading ? (
             <div className="text-[var(--ts-blue)] animate-pulse">Parsing Event Logs...</div>
           ) : (
             <div className="space-y-4">
               {logs.map((log, i) => (
-                <div key={i} className={clsx("p-4 rounded border", log.risk_level === 'High' ? "bg-red-950/30 border-red-500/50" : log.risk_level === 'Medium' ? "bg-yellow-950/30 border-yellow-500/50" : "bg-black/40 border-[var(--ts-border)]")}>
+                <div key={i} className={clsx("p-4 rounded border transition-colors", 
+                  log.risk_level === 'High' ? "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-500/50" : 
+                  log.risk_level === 'Medium' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-500/50" : 
+                  "bg-white border-gray-200 dark:bg-black/40 dark:border-[var(--ts-border)]")}>
                   <div className="flex items-center gap-3 mb-2">
-                    {log.source.includes('Cloud') ? <Cloud className="w-5 h-5 text-blue-400" /> : (log.risk_level === 'High' ? <ShieldAlert className="w-5 h-5 text-red-500" /> : log.risk_level === 'Medium' ? <ShieldAlert className="w-5 h-5 text-yellow-500" /> : <ShieldCheck className="w-5 h-5 text-green-500" />)}
-                    <span className="text-gray-400 text-xs">[{log.time_created}]</span>
-                    {log.source.includes('Cloud') && <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">AWS CLOUD</span>}
+                    {log.source.includes('Cloud') ? <Cloud className="w-5 h-5 text-blue-500 dark:text-blue-400" /> : (log.risk_level === 'High' ? <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-500" /> : log.risk_level === 'Medium' ? <ShieldAlert className="w-5 h-5 text-yellow-600 dark:text-yellow-500" /> : <ShieldCheck className="w-5 h-5 text-green-600 dark:text-green-500" />)}
+                    <span className="text-gray-500 dark:text-gray-400 text-xs">[{log.time_created}]</span>
+                    {log.source.includes('Cloud') && <span className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">AWS CLOUD</span>}
                     <span className="text-[var(--ts-blue)] font-bold">Event ID: {log.event_id}</span>
                   </div>
-                  <div className={clsx("whitespace-pre-wrap", log.risk_level === 'High' ? "text-red-200" : log.risk_level === 'Medium' ? "text-yellow-200" : "text-green-400")}>
+                  <div className={clsx("whitespace-pre-wrap font-medium", 
+                    log.risk_level === 'High' ? "text-red-700 dark:text-red-200" : 
+                    log.risk_level === 'Medium' ? "text-yellow-700 dark:text-yellow-200" : 
+                    "text-green-700 dark:text-green-400")}>
                     {log.description}
                   </div>
                 </div>
