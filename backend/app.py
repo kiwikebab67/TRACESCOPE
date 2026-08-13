@@ -6,6 +6,7 @@ import hashlib
 import json 
 import requests 
 from dotenv import load_dotenv
+import uuid
 from werkzeug.utils import secure_filename
 
 load_dotenv() # Load environment variables from .env file
