@@ -1321,6 +1321,11 @@ def upload_evidence(current_user, case_id):
         elif filename.lower().endswith('.json'):
             clear_old_logs("cloudtrail")
             parsed_events = parse_cloudtrail(save_path)
+            
+            if not parsed_events:
+                db.session.rollback()
+                return jsonify({'status': 'error', 'message': 'Parsed 0 events from the JSON file. Ensure it contains a valid "Records" array.'}), 400
+                
             for event in parsed_events:
                 db.session.add(ForensicLog(
                     evidence_id=new_evidence.id,
