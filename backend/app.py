@@ -611,9 +611,14 @@ def get_logs():
     if not case_id:
         return jsonify({"status": "error", "message": "No Case ID provided."}), 400
     
+    try:
+        case_id = int(case_id)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid Case ID."}), 400
+    
     logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id, ForensicLog.tool_source.in_(['logs', 'cloudtrail'])).order_by(ForensicLog.id.desc()).all()
     
-    return jsonify({
+    response = jsonify({
         "status": "success",
         "current_evidence": logs[0].evidence.filename if logs else None,
         "analysis_logs": [{
@@ -625,6 +630,10 @@ def get_logs():
             "risk_level": l.risk_level
         } for l in logs]
     })
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route("/api/registry")
 def get_registry():
