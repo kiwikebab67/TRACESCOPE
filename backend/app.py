@@ -1,5 +1,5 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
-from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk, parse_cloudtrail
+from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk, parse_cloudtrail, parse_linux_syslog, parse_auditd_log
 from services.threat_intel import query_virustotal_hash, query_abuseipdb
 import os
 import hashlib
@@ -1007,6 +1007,98 @@ def threat_intel(case_id):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+
+@app.route("/api/threat-intel/correlate/<int:case_id>")
+def threat_intel_correlate(case_id):
+    case = Case.query.get_or_404(case_id)
+    
+    logs = ForensicLog.query.join(Evidence).filter(Evidence.case_id == case_id).all()
+    
+    import re
+    ip_pattern = re.compile(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b')
+    hash_pattern = re.compile(r'\b(?:[a-fA-F0-9]{64}|[a-fA-F0-9]{32})\b')
+    
+    unique_ips = set()
+    unique_hashes = set()
+    
+    log_map = {} # Maps IP/Hash to the source log that contained it
+    
+    for log in logs:
+        text_to_scan = f"{log.source or ''} {log.description or ''}"
+        
+        # Find IPs
+        ips = ip_pattern.findall(text_to_scan)
+        for ip in ips:
+            # Exclude loopback, private networks, broadcast
+            if ip.startswith(('127.', '10.', '192.168.', '0.', '255.')):
+                continue
+            # Regex check for 172.16.0.0/12
+            if ip.startswith('172.'):
+                try:
+                    second_octet = int(ip.split('.')[1])
+                    if 16 <= second_octet <= 31:
+                        continue
+                except:
+                    pass
+            unique_ips.add(ip)
+            if ip not in log_map:
+                log_map[ip] = {
+                    'log_id': log.id,
+                    'module': log.tool_source or 'logs',
+                    'source': log.source or 'Unknown'
+                }
+                
+        # Find hashes
+        hashes = hash_pattern.findall(text_to_scan)
+        for h in hashes:
+            # Exclude common system/non-hash numbers
+            if len(h) == 32 or len(h) == 64:
+                unique_hashes.add(h)
+                if h not in log_map:
+                    log_map[h] = {
+                        'log_id': log.id,
+                        'module': log.tool_source or 'logs',
+                        'source': log.source or 'Unknown'
+                    }
+                    
+    alerts = []
+    
+    # Query Threat Intel for IPs
+    for ip in unique_ips:
+        risk, desc = query_abuseipdb(ip)
+        if risk in ['Medium', 'High']:
+            alerts.append({
+                'type': 'IP_Reputation',
+                'ioc': ip,
+                'risk_level': risk,
+                'description': desc,
+                'source_log_id': log_map[ip]['log_id'],
+                'source_module': log_map[ip]['module'],
+                'source_name': log_map[ip]['source']
+            })
+            
+    # Query Threat Intel for Hashes
+    for h in unique_hashes:
+        risk, desc = query_virustotal_hash(h)
+        if risk in ['Medium', 'High']:
+            alerts.append({
+                'type': 'File_Hash_Reputation',
+                'ioc': h,
+                'risk_level': risk,
+                'description': desc,
+                'source_log_id': log_map[h]['log_id'],
+                'source_module': log_map[h]['module'],
+                'source_name': log_map[h]['source']
+            })
+            
+    return jsonify({
+        'status': 'success',
+        'case_id': case_id,
+        'alerts': alerts,
+        'scanned_ips_count': len(unique_ips),
+        'scanned_hashes_count': len(unique_hashes)
+    })
+
 @app.route("/api/cases/<int:case_id>/report")
 @token_required
 def export_case_report(current_user, case_id):
@@ -1148,21 +1240,46 @@ def upload_evidence(current_user, case_id):
             db.session.commit()
         
         # Synchronous processing for MVP (to be moved to Celery later)
-        if filename.lower().endswith(('.evtx', '.txt')):
+        if filename.lower().endswith(('.evtx', '.txt', '.log', '.audit')) or any(kw in filename.lower() for kw in ['syslog', 'auth.log', 'audit.log']):
             clear_old_logs("logs")
-            parsed_events = parse_evtx_log(save_path)
+            clear_old_logs("cloudtrail")
+            
+            # Determine appropriate parser
+            if 'audit' in filename.lower() or filename.lower().endswith('.audit'):
+                parsed_events = parse_auditd_log(save_path)
+                tool_source = 'logs'
+            elif 'auth' in filename.lower() or 'syslog' in filename.lower() or filename.lower().endswith('.log'):
+                parsed_events = parse_linux_syslog(save_path)
+                tool_source = 'logs'
+            else:
+                parsed_events = parse_evtx_log(save_path)
+                tool_source = 'logs'
+                
             for event in parsed_events:
                 try:
                     eid = int(event.get('event_id', 0))
                 except (ValueError, TypeError):
                     eid = 0
 
-                source_combined = str(event.get('source', '')) + " " + str(event.get('raw_data', ''))
+                source_combined = str(event.get('source', '')) + " " + str(event.get('raw_data', '')) + " " + str(event.get('description', ''))
                 risk_lvl, description_intel = evaluate_log_risk(eid, source_combined)
                 
-                raw_data = event.get('raw_data')
-                if raw_data:
-                    description_intel = f"{raw_data}\n\n[SYSTEM]: {description_intel}"
+                # If the parser already gave a specific description or alert, preserve it
+                desc = event.get('description', '')
+                if desc:
+                    description_intel = f"{desc}\n\n[SYSTEM]: {description_intel}"
+                
+                # Check for explicit IP in description for threat correlation
+                import re
+                ip_match = re.search(r'(?:[0-9]{1,3}\.){3}[0-9]{1,3}', description_intel)
+                if ip_match:
+                    ip = ip_match.group(0)
+                    if not ip.startswith(('127.', '192.168.', '10.', '172.')):
+                        # Call query_abuseipdb for correlation!
+                        intel_risk, intel_msg = query_abuseipdb(ip)
+                        if intel_risk in ['Medium', 'High']:
+                            risk_lvl = intel_risk
+                            description_intel += f"\n\n[CORRELATED THREAT INTEL]: {intel_msg}"
 
                 db_log = ForensicLog(
                     time_created=str(event.get('time_created', '')),
@@ -1170,7 +1287,7 @@ def upload_evidence(current_user, case_id):
                     source=str(event.get('source', '')),
                     description=description_intel,
                     risk_level=risk_lvl,
-                    tool_source="logs",
+                    tool_source=tool_source,
                     evidence_id=new_evidence.id
                 )
                 db.session.add(db_log)

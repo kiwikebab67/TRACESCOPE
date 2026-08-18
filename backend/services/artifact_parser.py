@@ -512,3 +512,218 @@ def parse_cloudtrail(filepath):
     except Exception as e:
         events.append({"event_id": 999, "source": "CloudTrail Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
     return events
+
+
+def parse_linux_syslog(filepath):
+    """
+    Parses standard Unix/Linux syslog & auth.log files.
+    Identifies authentication failures, successful logins, and sudo executions.
+    """
+    import re
+    from datetime import datetime
+    events = []
+    
+    # Regex to match syslog: Aug 18 12:34:56 host process[123]: message
+    syslog_re = re.compile(
+        r'^(?P<month>[A-Za-z]{3})\s+(?P<day>\d+)\s+(?P<time>\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<process>[^:\[]+)(?:\[(?P<pid>\d+)\])?:?\s+(?P<message>.*)$'
+    )
+    
+    month_map = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+        'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+    }
+    
+    current_year = datetime.now().year
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            for idx, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                match = syslog_re.match(line)
+                if match:
+                    month_str = match.group('month')
+                    day_str = match.group('day')
+                    time_str = match.group('time')
+                    host = match.group('host')
+                    process = match.group('process').strip()
+                    pid = match.group('pid') or 'N/A'
+                    msg = match.group('message').strip()
+                    
+                    # Construct time
+                    try:
+                        month = month_map.get(month_str, 1)
+                        day = int(day_str)
+                        time_part = datetime.strptime(time_str, '%H:%M:%S')
+                        dt = datetime(current_year, month, day, time_part.hour, time_part.minute, time_part.second)
+                        time_created = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception:
+                        time_created = f"{month_str} {day_str} {time_str}"
+                        
+                    msg_lower = msg.lower()
+                    event_id = 1000
+                    source = f"Syslog: {process}"
+                    risk = "Low"
+                    description = f"[{process}] {msg}"
+                    
+                    # Categorize authentication / actions
+                    if "failed password" in msg_lower or "authentication failure" in msg_lower:
+                        event_id = 4625
+                        source = "Linux Auth: sshd"
+                        risk = "Medium"
+                        # Extract IP if present
+                        ip_match = re.search(r'from\s+([0-9a-fA-F\.:]+)', msg)
+                        if ip_match:
+                            risk = "High"
+                            description += f" [Threat Correlation Alert: Failed login from remote IP {ip_match.group(1)}]"
+                    elif "accepted password" in msg_lower or "accepted publickey" in msg_lower:
+                        event_id = 4624
+                        source = "Linux Auth: sshd"
+                        risk = "Low"
+                    elif "session opened for user" in msg_lower:
+                        event_id = 4624
+                        source = "Linux Auth: pam"
+                        risk = "Low"
+                    elif "session closed for user" in msg_lower:
+                        event_id = 4634
+                        source = "Linux Auth: pam"
+                        risk = "Low"
+                    elif "sudo" in process.lower() or "sudo:" in msg_lower:
+                        event_id = 4688
+                        source = "Linux Sudo Exec"
+                        risk = "Medium"
+                        if any(x in msg_lower for x in ["root", "chmod", "chown", "passwd", "shadow", "rm -rf"]):
+                            risk = "High"
+                            description += " [Threat Correlation Alert: Highly privileged or sensitive command executed via sudo]"
+                            
+                    events.append({
+                        "event_id": event_id,
+                        "source": source,
+                        "description": description,
+                        "risk_level": risk,
+                        "time_created": time_created
+                    })
+                else:
+                    # Generic line fallback
+                    events.append({
+                        "event_id": 1000,
+                        "source": "Linux Syslog",
+                        "description": line,
+                        "risk_level": "Low",
+                        "time_created": f"Line {idx + 1}"
+                    })
+    except Exception as e:
+        events.append({"event_id": 999, "source": "Syslog Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
+    return events
+
+
+def parse_auditd_log(filepath):
+    """
+    Parses Linux auditd logs (/var/log/audit/audit.log).
+    Extracts type, timestamp, syscalls, and command execution details.
+    """
+    import re
+    from datetime import datetime
+    events = []
+    
+    # Matches type=XXXX msg=audit(1692376510.123:456): details
+    audit_re = re.compile(r'^type=(?P<type>[A-Z_]+)\s+msg=audit\((?P<epoch>[\d\.]+):(?P<id>\d+)\):\s*(?P<details>.*)$')
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            for idx, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                match = audit_re.match(line)
+                if match:
+                    evt_type = match.group('type')
+                    epoch_str = match.group('epoch')
+                    audit_id = match.group('id')
+                    details = match.group('details')
+                    
+                    # Convert timestamp
+                    try:
+                        epoch = float(epoch_str)
+                        dt = datetime.utcfromtimestamp(epoch)
+                        time_created = dt.strftime('%Y-%m-%d %H:%M:%S UTC')
+                    except Exception:
+                        time_created = epoch_str
+                        
+                    # Parse key-value pairs in details, including nested ones
+                    kv_pairs = {}
+                    for match_kv in re.finditer(r'([a-zA-Z0-9_]+)=("[^"]*"|\'[^\']*\'|[^\s]+)', details):
+                        k = match_kv.group(1)
+                        v = match_kv.group(2).strip('"\'')
+                        kv_pairs[k] = v
+                        # If the value contains nested key=value pairs (like msg='op=...'), parse them too
+                        if '=' in v:
+                            for sub_match in re.finditer(r'([a-zA-Z0-9_]+)=("[^"]*"|\'[^\']*\'|[^\s\'"]+)', v):
+                                sub_k = sub_match.group(1)
+                                sub_v = sub_match.group(2).strip('"\'')
+                                kv_pairs[sub_k] = sub_v
+                        
+                    event_id = 8002 # Default Auditd Syscall ID
+                    source = f"Auditd: {evt_type}"
+                    risk = "Low"
+                    description = f"Type: {evt_type} | ID: {audit_id} | "
+                    
+                    if evt_type == "SYSCALL":
+                        syscall_name = kv_pairs.get('syscall', 'Unknown')
+                        exe = kv_pairs.get('exe', 'Unknown')
+                        comm = kv_pairs.get('comm', 'Unknown')
+                        success = kv_pairs.get('success', 'yes')
+                        uid = kv_pairs.get('uid', 'Unknown')
+                        
+                        description += f"Syscall: {syscall_name} | Command: {comm} | Exe: {exe} | Success: {success} | UID: {uid}"
+                        if success == 'no':
+                            risk = "Medium"
+                        
+                        # High risk executions
+                        exe_lower = exe.lower()
+                        if any(x in exe_lower for x in ['/tmp/', '/dev/shm', 'curl', 'wget', 'nc', 'nmap']):
+                            risk = "High"
+                            description += f" [Threat Correlation Alert: Suspicious file execution or binary path: {exe}]"
+                    elif evt_type == "USER_AUTH":
+                        res = kv_pairs.get('res', 'success')
+                        acct = kv_pairs.get('acct', 'Unknown')
+                        terminal = kv_pairs.get('terminal', 'Unknown')
+                        addr = kv_pairs.get('addr', 'Unknown')
+                        
+                        event_id = 4624 if res == 'success' else 4625
+                        source = "Auditd: User Auth"
+                        risk = "Low" if res == 'success' else "Medium"
+                        description += f"Account: {acct} | Result: {res} | Terminal: {terminal} | Addr: {addr}"
+                        if res != 'success' and addr != 'Unknown' and addr != '?' and not addr.startswith(('127.', '192.168.', '10.')):
+                            risk = "High"
+                            description += f" [Threat Correlation Alert: Failed authentication from remote IP {addr}]"
+                    elif evt_type == "ANOM_PROMISCUOUS":
+                        event_id = 8003
+                        source = "Auditd: Promiscuous Anomaly"
+                        risk = "High"
+                        dev = kv_pairs.get('dev', 'Unknown')
+                        description += f"Device entered promiscuous/sniffing mode: {dev} [Threat Correlation Alert: Potential unauthorized packet capturing on interface {dev}]"
+                    else:
+                        description += details[:200]
+                        
+                    events.append({
+                        "event_id": event_id,
+                        "source": source,
+                        "description": description,
+                        "risk_level": risk,
+                        "time_created": time_created
+                    })
+                else:
+                    events.append({
+                        "event_id": 8002,
+                        "source": "Linux Auditd",
+                        "description": line,
+                        "risk_level": "Low",
+                        "time_created": f"Line {idx + 1}"
+                    })
+    except Exception as e:
+        events.append({"event_id": 999, "source": "Auditd Error", "description": str(e), "risk_level": "High", "time_created": "N/A"})
+    return events

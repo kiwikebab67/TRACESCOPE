@@ -10,7 +10,12 @@ const ThreatIntelligence = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const activeCaseId = localStorage.getItem('activeCaseId');
+  const [activeCaseId, setActiveCaseId] = useState(() => localStorage.getItem('activeCaseId'));
+  
+  // New threat correlation states
+  const [correlatedAlerts, setCorrelatedAlerts] = useState([]);
+  const [correlationLoading, setCorrelationLoading] = useState(false);
+  const [correlationError, setCorrelationError] = useState('');
 
   const fetchThreatIntel = async () => {
     if (!activeCaseId) {
@@ -38,8 +43,48 @@ const ThreatIntelligence = () => {
     }
   };
 
+  const fetchCorrelatedAlerts = async () => {
+    if (!activeCaseId) {
+      setCorrelationLoading(false);
+      return;
+    }
+    
+    setCorrelationLoading(true);
+    setCorrelationError('');
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.get(`${baseUrl}/api/threat-intel/correlate/${activeCaseId}`);
+      if (res.data.status === 'success') {
+        setCorrelatedAlerts(res.data.alerts || []);
+      } else {
+        setCorrelationError(res.data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      setCorrelationError(err.response?.data?.message || 'Failed to fetch correlated indicators.');
+    } finally {
+      setCorrelationLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchThreatIntel();
+    const handleCaseChange = () => {
+      setActiveCaseId(localStorage.getItem('activeCaseId'));
+    };
+    window.addEventListener('caseChanged', handleCaseChange);
+    return () => window.removeEventListener('caseChanged', handleCaseChange);
+  }, []);
+
+  useEffect(() => {
+    if (activeCaseId) {
+      fetchThreatIntel();
+      fetchCorrelatedAlerts();
+    } else {
+      setLoading(false);
+      setResult(null);
+      setCorrelatedAlerts([]);
+    }
   }, [activeCaseId]);
 
   if (loading) {
@@ -151,6 +196,71 @@ const ThreatIntelligence = () => {
         </div>
       )}
 
+      {/* Correlation alerts section */}
+      {activeCaseId && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-gradient mb-4 flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-[var(--ts-pink)]" />
+            Correlated Indicators of Compromise (IOCs)
+          </h2>
+          
+          <div className="glass-panel overflow-hidden">
+            <div className="p-4 border-b border-[var(--ts-border)] bg-black/10 dark:bg-black/20 flex justify-between items-center">
+              <span className="text-sm font-semibold text-ts-text-muted">Extracted IP/Hash Threat Matches</span>
+              <span className="text-xs text-ts-text-muted">Automatically crawled and analyzed from case logs</span>
+            </div>
+            
+            <div className="overflow-x-auto">
+              {correlationLoading ? (
+                <div className="p-8 text-center text-ts-text-muted animate-pulse">Running threat correlation engine...</div>
+              ) : correlationError ? (
+                <div className="p-8 text-center text-red-500 font-mono text-sm">{correlationError}</div>
+              ) : correlatedAlerts.length === 0 ? (
+                <div className="p-8 text-center text-ts-text-muted italic">
+                  No correlated high-risk indicators of compromise found in this case's logs.
+                </div>
+              ) : (
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-black/5 dark:bg-black/20 text-xs uppercase text-ts-text-muted font-bold border-b border-[var(--ts-border)]">
+                    <tr>
+                      <th className="px-5 py-3">Type</th>
+                      <th className="px-5 py-3">Indicator (IOC)</th>
+                      <th className="px-5 py-3">Risk</th>
+                      <th className="px-5 py-3">Source</th>
+                      <th className="px-5 py-3">Intelligence Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--ts-border)]">
+                    {correlatedAlerts.map((alert, idx) => (
+                      <tr key={idx} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <td className="px-5 py-4 font-mono text-xs text-ts-text-muted">{alert.type}</td>
+                        <td className="px-5 py-4 font-mono text-sm text-[var(--ts-blue)] font-bold">{alert.ioc}</td>
+                        <td className="px-5 py-4">
+                          <span className={clsx(
+                            "badge", 
+                            alert.risk_level === 'High' ? "bg-red-500/10 text-red-500 border border-red-500/30" : "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30"
+                          )}>
+                            {alert.risk_level}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="text-xs uppercase bg-black/20 px-2 py-0.5 rounded text-ts-text-muted">
+                            {alert.source_module} ({alert.source_name})
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 font-mono text-xs text-[var(--ts-text)] max-w-xs truncate" title={alert.description}>
+                          {alert.description}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isUploadOpen && (
         <FileUpload 
           caseId={activeCaseId} 
@@ -158,6 +268,7 @@ const ThreatIntelligence = () => {
           onUploadComplete={() => {
             setIsUploadOpen(false);
             fetchThreatIntel();
+            fetchCorrelatedAlerts();
           }}
         />
       )}

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, Sun, Moon, Settings, User } from 'lucide-react';
+import axios from 'axios';
 
 const Navbar = ({ toggleSidebar }) => {
   const [isDark, setIsDark] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
+  
+  const [cases, setCases] = useState([]);
+  const [activeCaseId, setActiveCaseId] = useState(() => localStorage.getItem('activeCaseId') || '');
 
   useEffect(() => {
     if (isDark) {
@@ -15,6 +19,38 @@ const Navbar = ({ toggleSidebar }) => {
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+        const res = await axios.get(`${baseUrl}/api/cases`);
+        setCases(res.data);
+      } catch (err) {
+        console.error('Failed to fetch cases in navbar:', err);
+      }
+    };
+    fetchCases();
+  }, []);
+
+  useEffect(() => {
+    const handleCaseChange = () => {
+      setActiveCaseId(localStorage.getItem('activeCaseId') || '');
+    };
+    window.addEventListener('caseChanged', handleCaseChange);
+    return () => window.removeEventListener('caseChanged', handleCaseChange);
+  }, []);
+
+  const handleCaseSelect = (e) => {
+    const val = e.target.value;
+    setActiveCaseId(val);
+    if (val) {
+      localStorage.setItem('activeCaseId', val);
+    } else {
+      localStorage.removeItem('activeCaseId');
+    }
+    window.dispatchEvent(new Event('caseChanged'));
+  };
 
   return (
     <div className="flex flex-col shrink-0">
@@ -41,6 +77,23 @@ const Navbar = ({ toggleSidebar }) => {
             placeholder="Search Everything (Hashes, IPs, Cases)..." 
             className="w-full bg-[var(--ts-bg)] border border-[var(--ts-border)] text-[var(--ts-text)] rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ts-blue)]/50 focus:border-[var(--ts-blue)] transition-all"
           />
+        </div>
+
+        {/* Global Active Case Dropdown */}
+        <div className="flex items-center gap-2 ml-6 text-sm">
+          <span className="font-mono text-xs text-ts-text-muted uppercase tracking-wider hidden lg:inline">Active Case:</span>
+          <select 
+            value={activeCaseId}
+            onChange={handleCaseSelect}
+            className="bg-[var(--ts-bg)] border border-[var(--ts-border)] text-[var(--ts-text)] text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--ts-blue)] transition-all"
+          >
+            <option value="">-- No Active Case --</option>
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.case_number} - {c.title}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

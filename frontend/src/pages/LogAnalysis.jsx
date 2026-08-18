@@ -12,14 +12,18 @@ const LogAnalysis = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const activeCaseId = localStorage.getItem('activeCaseId');
+  const [activeCaseId, setActiveCaseId] = useState(() => localStorage.getItem('activeCaseId'));
 
   const fetchLogs = async () => {
     if (!activeCaseId) {
+      setLogs([]);
+      setCurrentEvidence(null);
+      setCurrentEvidenceHash(null);
       setLoading(false);
       return;
     }
     
+    setLoading(true);
     try {
       const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
       const res = await axios.get(`${baseUrl}/api/logs?caseId=${activeCaseId}&t=${new Date().getTime()}`);
@@ -38,6 +42,14 @@ const LogAnalysis = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handleCaseChange = () => {
+      setActiveCaseId(localStorage.getItem('activeCaseId'));
+    };
+    window.addEventListener('caseChanged', handleCaseChange);
+    return () => window.removeEventListener('caseChanged', handleCaseChange);
+  }, []);
 
   useEffect(() => {
     fetchLogs();
