@@ -843,7 +843,44 @@ def parse_apk():
         
         from services.apk_analyzer import analyze_apk
         result = analyze_apk(filepath)
+        
+        # Extract DEX classes, methods and strings
+        try:
+            from services.dex_parser import extract_apk_dex_data
+            dex_result = extract_apk_dex_data(filepath)
+            if dex_result.get('status') == 'success':
+                result['classes'] = dex_result.get('classes')
+                result['sensitive_strings'] = dex_result.get('sensitive_strings')
+                result['raw_strings_count'] = dex_result.get('raw_strings_count')
+                result['temp_filepath'] = filepath
+        except Exception as e:
+            result['decompilation_error'] = f"DEX Decompiler Error: {str(e)}"
+            
         return jsonify(result)
+
+@app.route("/api/mobile/apk/decompile-method", methods=["POST"])
+def decompile_method():
+    data = request.json
+    filepath = data.get('filepath')
+    class_name = data.get('class_name')
+    method_name = data.get('method_name')
+    
+    if not filepath or not class_name or not method_name:
+        return jsonify({'status': 'error', 'message': 'Missing parameters'}), 400
+        
+    try:
+        from services.dex_parser import DexParser
+        import zipfile
+        with zipfile.ZipFile(filepath, 'r') as z:
+            dex_files = [name for name in z.namelist() if name.startswith('classes') and name.endswith('.dex')]
+            if not dex_files:
+                return jsonify({'status': 'error', 'message': 'No DEX files found'}), 404
+            dex_data = z.read(dex_files[0])
+            parser = DexParser(dex_data)
+            code = parser.decompile_method(class_name, method_name)
+            return jsonify({'status': 'success', 'decompiled_code': code})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route("/api/web3/scan", methods=["POST"])
 @token_required

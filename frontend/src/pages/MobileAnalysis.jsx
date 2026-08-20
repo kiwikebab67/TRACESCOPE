@@ -95,9 +95,25 @@ export default function MobileAnalysis() {
   const [apkResult, setApkResult] = useState(null);
   const [apkError, setApkError] = useState(null);
   
+  // Decompiler states
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [decompiledCode, setDecompiledCode] = useState('');
+  const [isDecompilingMethod, setIsDecompilingMethod] = useState(false);
+  const [apkActiveTab, setApkActiveTab] = useState('manifest');
+  
   useEffect(() => {
     const caseId = localStorage.getItem('activeCaseId');
     if (caseId) setActiveCaseId(caseId);
+  }, []);
+
+  useEffect(() => {
+    const handleCaseChange = () => {
+      const caseId = localStorage.getItem('activeCaseId');
+      setActiveCaseId(caseId || null);
+    };
+    window.addEventListener('caseChanged', handleCaseChange);
+    return () => window.removeEventListener('caseChanged', handleCaseChange);
   }, []);
 
   const handleImeiSubmit = async (e) => {
@@ -165,6 +181,10 @@ export default function MobileAnalysis() {
     setIsApkLoading(true);
     setApkError(null);
     setApkResult(null);
+    setSelectedClass(null);
+    setSelectedMethod(null);
+    setDecompiledCode('');
+    setApkActiveTab('manifest');
     const formData = new FormData();
     formData.append('file', apkFile);
     try {
@@ -181,6 +201,33 @@ export default function MobileAnalysis() {
       setApkError(err.response?.data?.message || 'Error parsing APK file');
     } finally {
       setIsApkLoading(false);
+    }
+  };
+
+  const handleMethodDecompile = async (className, methodName) => {
+    if (!apkResult?.temp_filepath) return;
+    
+    setSelectedClass(className);
+    setSelectedMethod(methodName);
+    setIsDecompilingMethod(true);
+    setDecompiledCode('');
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const res = await axios.post(`${baseUrl}/api/mobile/apk/decompile-method`, {
+        filepath: apkResult.temp_filepath,
+        class_name: className,
+        method_name: methodName
+      });
+      if (res.data.status === 'success') {
+        setDecompiledCode(res.data.decompiled_code);
+      } else {
+        setDecompiledCode(`// Decompilation failed: ${res.data.message}`);
+      }
+    } catch (err) {
+      setDecompiledCode(`// Decompilation error: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsDecompilingMethod(false);
     }
   };
 
@@ -465,7 +512,7 @@ export default function MobileAnalysis() {
 
             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-[200px]">
               {apkResult && (
-                <div className="animate-fade-in">
+                <div className="animate-fade-in flex flex-col h-full">
                   <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="font-bold text-slate-900 dark:text-white">{apkResult.app_name}</h3>
@@ -476,21 +523,121 @@ export default function MobileAnalysis() {
                     </div>
                   </div>
                   
-                  <div className="mb-4 text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-2 rounded">
-                    <Activity className="w-4 h-4 text-indigo-500" />
-                    {apkResult.risk_summary}
+                  {/* Tab Selector */}
+                  <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50 mb-4 shrink-0 font-mono text-xs">
+                    <button 
+                      type="button"
+                      onClick={() => setApkActiveTab('manifest')}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${apkActiveTab === 'manifest' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      Manifest & Risk
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setApkActiveTab('decompiler')}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${apkActiveTab === 'decompiler' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      DEX Decompiler
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setApkActiveTab('strings')}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${apkActiveTab === 'strings' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      IOC Strings ({apkResult.sensitive_strings?.length || 0})
+                    </button>
                   </div>
 
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Requested Permissions</h4>
-                  <div className="space-y-1">
-                    {apkResult.permissions.map((p, idx) => (
-                      <div key={idx} className={`p-2 rounded text-xs font-mono flex items-center justify-between ${p.risk_level === 'CRITICAL' || p.risk_level === 'High' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800'}`}>
-                        <span>{p.permission.replace('android.permission.', '')}</span>
-                        {(p.risk_level === 'CRITICAL' || p.risk_level === 'High') && (
-                          <ShieldAlert className="w-3 h-3 text-rose-500" />
-                        )}
+                  {/* Tab Contents */}
+                  <div className="flex-1">
+                    {apkActiveTab === 'manifest' && (
+                      <div className="space-y-4">
+                        <div className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700/30">
+                          <Activity className="w-4 h-4 text-indigo-500" />
+                          {apkResult.risk_summary}
+                        </div>
+
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Requested Permissions</h4>
+                        <div className="space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar">
+                          {apkResult.permissions.map((p, idx) => (
+                            <div key={idx} className={`p-2 rounded text-xs font-mono flex items-center justify-between ${p.risk_level === 'CRITICAL' || p.risk_level === 'High' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800'}`}>
+                              <span>{p.permission.replace('android.permission.', '')}</span>
+                              {(p.risk_level === 'CRITICAL' || p.risk_level === 'High') && (
+                                <ShieldAlert className="w-3 h-3 text-rose-500" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {apkActiveTab === 'decompiler' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[350px] overflow-hidden">
+                        {/* Classes list */}
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 overflow-y-auto bg-slate-50/50 dark:bg-slate-950/20 font-mono text-[11px] max-h-full custom-scrollbar">
+                          <h4 className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider mb-3">Dex Classes</h4>
+                          {apkResult.classes && Object.keys(apkResult.classes).length > 0 ? (
+                            Object.entries(apkResult.classes).map(([className, classInfo]) => (
+                              <div key={className} className="mb-4">
+                                <div className="font-bold text-indigo-500 dark:text-indigo-400 truncate" title={className}>
+                                  {className.split('/').pop().replace(';', '')}
+                                </div>
+                                <div className="pl-3 mt-1 space-y-1">
+                                  {classInfo.methods.map((method) => (
+                                    <div 
+                                      key={method.name}
+                                      onClick={() => handleMethodDecompile(className, method.name)}
+                                      className={`cursor-pointer hover:text-cyan-500 py-0.5 truncate flex items-center gap-1.5 ${selectedClass === className && selectedMethod === method.name ? 'text-cyan-500 font-bold' : 'text-slate-500 dark:text-slate-400'}`}
+                                    >
+                                      <Code className="w-3 h-3 shrink-0" />
+                                      <span>{method.name}()</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-slate-500 italic">No classes found in classes.dex.</div>
+                          )}
+                        </div>
+
+                        {/* Decompile View */}
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col bg-[#020617] text-slate-300 font-mono text-[11px] max-h-full">
+                          <div className="p-2 bg-slate-900 border-b border-slate-800 flex justify-between items-center text-[10px] text-slate-400 shrink-0">
+                            <span className="truncate">{selectedMethod ? `${selectedMethod}()` : 'Decompiled Source'}</span>
+                            <span className="text-[9px] uppercase tracking-wider text-cyan-400 font-bold shrink-0">java-pseudocode</span>
+                          </div>
+                          <div className="p-4 flex-1 overflow-y-auto whitespace-pre custom-scrollbar">
+                            {isDecompilingMethod ? (
+                              <span className="text-cyan-400 animate-pulse">Decompiling bytecode...</span>
+                            ) : decompiledCode ? (
+                              <code>{decompiledCode}</code>
+                            ) : (
+                              <span className="text-slate-600">// Select a method on the left to decompile Dalvik instructions</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {apkActiveTab === 'strings' && (
+                      <div className="space-y-4 max-h-[350px] overflow-y-auto custom-scrollbar">
+                        <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-xs text-rose-400 font-mono">
+                          <span className="font-bold">Total DEX Strings:</span> {apkResult.raw_strings_count} | Crawled indicators (URLs, IPs, Credentials):
+                        </div>
+                        <div className="space-y-1.5">
+                          {apkResult.sensitive_strings && apkResult.sensitive_strings.length > 0 ? (
+                            apkResult.sensitive_strings.map((str, idx) => (
+                              <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs break-all text-rose-500 dark:text-rose-400">
+                                {str}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-slate-500 italic text-center py-6 text-xs">No sensitive strings carved from classes.dex string pool.</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
