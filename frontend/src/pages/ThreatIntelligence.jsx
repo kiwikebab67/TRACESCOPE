@@ -4,6 +4,7 @@ import { ShieldAlert, ShieldCheck, Activity, Globe, UploadCloud } from 'lucide-r
 import InfoBox from '../components/common/InfoBox';
 import EmptyState from '../components/common/EmptyState';
 import FileUpload from '../components/FileUpload';
+import clsx from 'clsx';
 
 const ThreatIntelligence = () => {
   const [loading, setLoading] = useState(true);

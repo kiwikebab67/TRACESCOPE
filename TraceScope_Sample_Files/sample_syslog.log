@@ -1,0 +1,3 @@
+﻿Aug 20 12:00:01 web-prod sshd[1234]: Failed password for root from 185.220.101.4 port 22 ssh2
+Aug 20 12:05:00 web-prod sshd[1235]: Accepted publickey for admin from 192.168.1.50 port 22 ssh2
+Aug 20 12:10:02 web-prod sudo:  admin : TTY=pts/0 ; PWD=/home/admin ; USER=root ; COMMAND=/bin/chmod 777 /etc/shadow

@@ -1,0 +1,3 @@
+﻿type=SYSCALL msg=audit(1692376510.123:101): arch=c000003e syscall=59 success=no exit=-2 a0=7ffd582bc990 a1=7ffd582bcab0 a2=7ffd582bcb50 a3=7f0322c366a0 items=1 ppid=123 pid=456 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts0 ses=1 comm="wget" exe="/usr/bin/wget"
+type=USER_AUTH msg=audit(1692376520.456:102): pid=789 uid=0 auid=4294967295 ses=4294967295 msg='op=PAM:authentication acct="invalid_user" exe="/usr/sbin/sshd" hostname=185.220.101.4 addr=185.220.101.4 terminal=ssh res=failed'
+type=ANOM_PROMISCUOUS msg=audit(1692376530.789:103): dev=eth0 prom=256 old_prom=0 auid=1000 uid=0 gid=0 ses=1
