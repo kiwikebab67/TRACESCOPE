@@ -621,7 +621,7 @@ def get_logs():
     response = jsonify({
         "status": "success",
         "current_evidence": logs[0].evidence.filename if logs else None,
-        "current_evidence_hash": logs[0].evidence.sha256_hash if logs else None,
+        "current_evidence_hash": logs[0].evidence.hash_sha256 if logs else None,
         "analysis_logs": [{
             "id": l.id,
             "time_created": l.time_created,
