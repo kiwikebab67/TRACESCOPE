@@ -33,12 +33,28 @@ import axios from 'axios';
 // Configure Axios globally
 axios.defaults.baseURL = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
 
-// Configure Axios Interceptor for JWT Auth globally
+// Configure Axios Interceptor for JWT Auth and dynamic URL routing globally
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('tracescope_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Correct host URLs for Render static deploys
+    let url = config.url || '';
+    if (window.location.hostname.includes('render.com')) {
+      if (url.startsWith('http://localhost:5000')) {
+        config.url = url.replace('http://localhost:5000', 'https://tracescope-backend.onrender.com');
+      } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        config.url = `https://tracescope-backend.onrender.com${url.startsWith('/') ? '' : '/'}${url}`;
+      } else if (url.startsWith(window.location.origin)) {
+        config.url = url.replace(window.location.origin, 'https://tracescope-backend.onrender.com');
+      }
+    } else if (window.location.port === '5173') {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        config.url = `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
+      }
     }
     return config;
   },
