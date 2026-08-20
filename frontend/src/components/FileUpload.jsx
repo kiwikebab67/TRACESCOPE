@@ -22,11 +22,11 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
     onDrop,
     maxFiles: 1,
     accept: {
-      'application/octet-stream': ['.raw', '.dmp', '.mem', '.bin', '.exe', '.dll', '.sys', '.dat', '.lnk', '.pf'],
+      'application/octet-stream': ['.raw', '.dmp', '.mem', '.bin', '.exe', '.dll', '.sys', '.dat', '.lnk', '.pf', '.apk'],
       'application/vnd.tcpdump.pcap': ['.pcap', '.cap'],
       'text/xml': ['.evtx'],
       'message/rfc822': ['.eml'],
-      'text/plain': ['.txt', '.log', '.reg', '.ps1'],
+      'text/plain': ['.txt', '.log', '.reg', '.ps1', '.audit'],
       'application/vnd.sqlite3': ['.sqlite', '.sqlite3', '.db'],
       'application/json': ['.json']
     }
@@ -97,7 +97,7 @@ const FileUpload = ({ caseId, onUploadComplete, onClose }) => {
                 {isDragActive ? "Drop the file here..." : "Drag & drop an artifact, or click to select"}
               </p>
               <p className="text-xs text-ts-text-muted mt-2">
-                Supported: .raw, .mem, .pcap, .evtx, .exe, .dll, .ps1, .lnk, .pf, .txt, .reg, .eml, .db, .json
+                Supported: .raw, .mem, .pcap, .evtx, .exe, .dll, .ps1, .lnk, .pf, .txt, .reg, .eml, .db, .json, .audit, .apk
               </p>
             </div>
           ) : (
