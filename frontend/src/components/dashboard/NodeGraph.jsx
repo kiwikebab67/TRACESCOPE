@@ -1,10 +1,32 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, ShieldAlert, Cpu, Database, Network } from 'lucide-react';
 import clsx from 'clsx';
 
 const NodeGraph = () => {
   const containerRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleNodeClick = (label) => {
+    const routes = {
+      "Malware Engine": "/malware",
+      "Event Logs": "/logs",
+      "DEX Decompiler": "/mobile",
+      "Threat Intel": "/threat-intel",
+      "Memory Scan": "/memory",
+      "Packet Analysis": "/network",
+      "Email Carver": "/email",
+      "Registry Hive": "/registry",
+      "Web3 Forensics": "/web3",
+      "USB History": "/usb",
+      "AI Assistant": "/ai-assistant",
+      "IOC Scanner": "/ioc-scanner"
+    };
+    if (routes[label]) {
+      navigate(routes[label]);
+    }
+  };
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -293,84 +315,88 @@ const NodeGraph = () => {
         const floatY = isCore ? 0 : Math.sin(node.angle || 0) * 10;
         
         return (
-          <motion.div
+          <div
             key={node.id}
-            className="absolute z-10 cursor-pointer flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2"
+            className="absolute z-10 cursor-pointer flex flex-col items-center justify-center"
             style={{
               left: node.x,
               top: node.y,
+              transform: 'translate(-50%, -50%)'
             }}
-            animate={{
-              y: [0, floatY, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+            onClick={() => handleNodeClick(node.label)}
             onMouseEnter={() => setHoveredNode(node.id)}
             onMouseLeave={() => setHoveredNode(null)}
           >
-            <motion.div 
-              className={clsx(
-                "relative flex items-center justify-center rounded-full backdrop-blur-sm",
-                isCore ? "w-16 h-16 bg-black dark:bg-[#020617] border-2" : "w-10 h-10 bg-white/80 dark:bg-[#020617]/80 border"
-              )}
-              style={{
-                borderColor: node.color,
-                boxShadow: hoveredNode === node.id || isAlert || isCore
-                  ? `0 0 ${isCore ? '25px' : '15px'} ${node.color}` 
-                  : 'none'
+            <motion.div
+              animate={{
+                y: [0, floatY, 0],
               }}
-              whileHover={{ scale: 1.2 }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="flex flex-col items-center justify-center"
             >
-              <Icon 
-                className={clsx(isCore ? "w-8 h-8" : "w-5 h-5")} 
-                style={{ color: node.color }} 
-              />
-              
-              {/* Ping effect for alerts */}
-              {isAlert && (
-                <span 
-                  className="absolute inset-0 rounded-full animate-ping opacity-50"
-                  style={{ backgroundColor: node.color }}
-                ></span>
-              )}
-
-              {/* ─── Pulsing Sonar Rings for Center Node ─── */}
-              {isCore && (
-                <>
-                  <motion.span
-                    className="absolute inset-0 rounded-full border-2"
-                    style={{ borderColor: node.color }}
-                    animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut' }}
-                  />
-                  <motion.span
-                    className="absolute inset-0 rounded-full border"
-                    style={{ borderColor: node.color }}
-                    animate={{ scale: [1, 2.8], opacity: [0.4, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeOut', delay: 0.8 }}
-                  />
-                </>
-              )}
+              <motion.div 
+                className={clsx(
+                  "relative flex items-center justify-center rounded-full backdrop-blur-sm border-2 transition-all duration-300",
+                  isCore ? "w-16 h-16 bg-black dark:bg-[#020617]" : "w-10 h-10 bg-white/95 dark:bg-[#020617]/95"
+                )}
+                style={{
+                  borderColor: node.color,
+                  boxShadow: hoveredNode === node.id || isAlert || isCore
+                    ? `0 0 ${isCore ? '25px' : '18px'} ${node.color}` 
+                    : `0 0 10px ${node.color}40`
+                }}
+                whileHover={{ scale: 1.25 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+              >
+                <Icon 
+                  className={clsx(isCore ? "w-8 h-8" : "w-5 h-5")} 
+                  style={{ color: node.color, filter: 'drop-shadow(0 0 4px currentColor)' }} 
+                />
+                
+                {/* Ping effect for alerts */}
+                {isAlert && (
+                  <span 
+                    className="absolute inset-0 rounded-full animate-ping opacity-50"
+                    style={{ backgroundColor: node.color }}
+                  ></span>
+                )}
+  
+                {/* ─── Pulsing Sonar Rings for Center Node ─── */}
+                {isCore && (
+                  <>
+                    <motion.span
+                      className="absolute inset-0 rounded-full border-2"
+                      style={{ borderColor: node.color }}
+                      animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut' }}
+                    />
+                    <motion.span
+                      className="absolute inset-0 rounded-full border"
+                      style={{ borderColor: node.color }}
+                      animate={{ scale: [1, 2.8], opacity: [0.4, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeOut', delay: 0.8 }}
+                    />
+                  </>
+                )}
+              </motion.div>
+  
+              {/* Label (Always Visible and Glowing) */}
+              <div 
+                className="mt-3 text-[11px] font-bold font-mono px-2 py-1 rounded bg-white/95 dark:bg-black/95 border border-slate-200 dark:border-slate-800 shadow-md whitespace-nowrap pointer-events-none transition-all duration-300"
+                style={{
+                  color: node.color,
+                  textShadow: `0 0 8px ${node.color}aa`,
+                  boxShadow: hoveredNode === node.id ? `0 0 12px ${node.color}60` : `0 0 6px ${node.color}20`,
+                }}
+              >
+                {node.label}
+              </div>
             </motion.div>
-
-            {/* Label (Always Visible and Glowing) */}
-            <div 
-              className="absolute top-full mt-3 text-[11px] font-bold font-mono px-2 py-1 rounded bg-white/90 dark:bg-black/90 border whitespace-nowrap pointer-events-none"
-              style={{
-                borderColor: node.color,
-                color: node.color,
-                boxShadow: `0 0 10px ${node.color}40`,
-                textShadow: `0 0 8px ${node.color}90`,
-                left: '50%',
-                transform: 'translateX(-50%)'
-              }}
-            >
-              {node.label}
-            </div>
-
+  
             {/* ─── Tooltip on Hover ─── */}
             <AnimatePresence>
               {hoveredNode === node.id && !isCore && (
@@ -379,7 +405,7 @@ const NodeGraph = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.92 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute z-30 bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 rounded-lg p-3
+                  className="absolute z-30 bottom-full mb-4 w-48 rounded-lg p-3
                              bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border
                              shadow-lg shadow-black/30 pointer-events-none"
                   style={{
@@ -399,7 +425,7 @@ const NodeGraph = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         );
       })}
     </div>
