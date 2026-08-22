@@ -84,7 +84,7 @@ const NodeGraph = () => {
         y: centerY,
         label: 'TRACESCOPE-HQ',
         type: 'core',
-        color: '#1e293b', // Slate-800 professional
+        color: '#2563eb', // Royal Blue professional
         icon: ShieldAlert
       }
     ];
@@ -341,7 +341,7 @@ const NodeGraph = () => {
               <motion.div 
                 className={clsx(
                   "relative flex items-center justify-center rounded-full backdrop-blur-sm border-2 transition-all duration-300",
-                  isCore ? "w-16 h-16 bg-black dark:bg-[#020617]" : "w-10 h-10 bg-white/95 dark:bg-[#020617]/95"
+                  isCore ? "w-16 h-16 bg-white dark:bg-[#0b1329]" : "w-10 h-10 bg-white/95 dark:bg-[#020617]/95"
                 )}
                 style={{
                   borderColor: node.color,
