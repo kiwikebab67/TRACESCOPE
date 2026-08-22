@@ -39,16 +39,20 @@ const NodeGraph = () => {
     const centerY = dimensions.height / 2;
     const radius = Math.min(centerX, centerY) * 0.7;
 
-    const numNodes = 8;
+    const numNodes = 12;
     const suites = [
-      { label: "Memory Analysis", icon: Database, color: '#ff00ff' }, // Magenta
-      { label: "Network Analysis", icon: Network, color: '#00f0ff' }, // Cyan
-      { label: "Log Analysis", icon: Activity, color: '#ffea00' }, // Neon Yellow
-      { label: "Registry Analysis", icon: Database, color: '#bc13fe' }, // Neon Purple
-      { label: "Malware Analysis", icon: Activity, color: '#ff003c' }, // Neon Red
-      { label: "USB Analysis", icon: Cpu, color: '#39ff14' }, // Neon Green
-      { label: "Email Investigation", icon: Network, color: '#ff00ff' }, // Magenta
-      { label: "Browser Artifacts", icon: Database, color: '#00f0ff' } // Cyan
+      { label: "Malware Engine", icon: Activity, color: '#ef4444' },       // Red
+      { label: "Event Logs", icon: Activity, color: '#3b82f6' },           // Blue
+      { label: "DEX Decompiler", icon: Database, color: '#10b981' },       // Emerald
+      { label: "Threat Intel", icon: Network, color: '#f59e0b' },          // Amber
+      { label: "Memory Scan", icon: Cpu, color: '#8b5cf6' },              // Violet
+      { label: "Packet Analysis", icon: Network, color: '#06b6d4' },      // Cyan
+      { label: "Email Carver", icon: Activity, color: '#ec4899' },         // Pink
+      { label: "Registry Hive", icon: Database, color: '#eab308' },        // Yellow
+      { label: "Web3 Forensics", icon: Database, color: '#6366f1' },       // Indigo
+      { label: "USB History", icon: Cpu, color: '#14b8a6' },               // Teal
+      { label: "AI Assistant", icon: Activity, color: '#a855f7' },         // Purple
+      { label: "IOC Scanner", icon: ShieldAlert, color: '#f97316' },       // Orange
     ];
 
     const generatedNodes = [
@@ -58,7 +62,7 @@ const NodeGraph = () => {
         y: centerY,
         label: 'TRACESCOPE-HQ',
         type: 'core',
-        color: '#00f0ff', // Cyan
+        color: '#1e293b', // Slate-800 professional
         icon: ShieldAlert
       }
     ];
@@ -66,7 +70,7 @@ const NodeGraph = () => {
     const generatedEdges = [];
 
     for (let i = 0; i < numNodes; i++) {
-      const angle = (i / numNodes) * 2 * Math.PI;
+      const angle = (i / numNodes) * 2 * Math.PI - Math.PI / 2;
       const rawX = centerX + radius * Math.cos(angle);
       const rawY = centerY + radius * Math.sin(angle);
       
@@ -75,7 +79,7 @@ const NodeGraph = () => {
       const x = Math.round((rawX - centerX) / grid) * grid + centerX;
       const y = Math.round((rawY - centerY) / grid) * grid + centerY;
       
-      const isHighRisk = i === 2 || i === 4; // Highlight Log and Malware as High Risk
+      const isHighRisk = i === 0 || i === 3 || i === 11; // Malware, Threat Intel, IOC Scanner
       const id = `node-${i}`;
       
       generatedNodes.push({
