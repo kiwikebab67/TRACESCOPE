@@ -109,10 +109,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
              </div>
           </div>
           <div className={clsx("flex flex-col whitespace-nowrap transition-all duration-300", !effectiveOpen ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0")}>
-            <span className="font-black text-[var(--ts-text)] tracking-[0.2em] text-lg hover-glitch cursor-default">TRACE<span className="text-[var(--ts-blue)]">SCOPE</span></span>
-            <span className="text-[10px] text-[var(--ts-blue)] font-mono uppercase tracking-[0.3em] flex items-center gap-2">
+            <span className="font-black text-[var(--ts-text)] tracking-[0.15em] text-base hover-glitch cursor-default">TRACE<span className="text-[var(--ts-blue)]">SCOPE</span></span>
+            <span className="text-[10px] text-[var(--ts-blue)] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--ts-blue)] animate-pulse"></span>
-              DFIR ORCHESTRATOR
+              BY KAUSHIKI
             </span>
           </div>
         </div>

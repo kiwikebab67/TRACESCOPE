@@ -182,13 +182,13 @@ const Dashboard = () => {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-gradient flex items-center gap-3">
-            Command Center
+            TraceScope by Kaushiki
             <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
-              Live
+              Live Command Center
             </span>
           </h1>
           <p className="text-sm text-ts-text-muted mt-1">Overview of active investigations and system telemetry.</p>
