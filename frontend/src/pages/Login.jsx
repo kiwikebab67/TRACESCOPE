@@ -23,6 +23,7 @@ const Login = ({ onLogin }) => {
       if (response.data.token) {
         localStorage.setItem('tracescope_token', response.data.token);
         localStorage.setItem('tracescope_user', response.data.username);
+        localStorage.setItem('user_role', response.data.role || 'Admin');
         onLogin(true);
         navigate('/');
       }
@@ -51,6 +52,7 @@ const Login = ({ onLogin }) => {
         if (response.data.token) {
           localStorage.setItem('tracescope_token', response.data.token);
           localStorage.setItem('tracescope_user', response.data.username);
+          localStorage.setItem('user_role', response.data.role || 'Investigator');
           onLogin(true);
           navigate('/');
         }

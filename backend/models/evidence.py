@@ -7,9 +7,9 @@ class Evidence(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(512), nullable=False)
-    hash_sha256 = db.Column(db.String(64), nullable=False)
+    hash_sha256 = db.Column(db.String(64), nullable=False, index=True)
     hash_md5 = db.Column(db.String(32), nullable=False)
-    case_id = db.Column(db.Integer, db.ForeignKey('cases.id'), nullable=False)
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.id'), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     logs = db.relationship('ForensicLog', backref='evidence', lazy=True, cascade="all, delete-orphan")
@@ -21,14 +21,15 @@ class ForensicLog(db.Model):
     __tablename__ = 'forensic_logs'
     
     id = db.Column(db.Integer, primary_key=True)
-    time_created = db.Column(db.String(100), nullable=True)
-    event_id = db.Column(db.Integer, nullable=True)
-    source = db.Column(db.String(255), nullable=True)
+    time_created = db.Column(db.String(100), nullable=True, index=True)
+    event_id = db.Column(db.Integer, nullable=True, index=True)
+    source = db.Column(db.String(255), nullable=True, index=True)
     description = db.Column(db.Text, nullable=True)
-    risk_level = db.Column(db.String(50), nullable=True)
+    risk_level = db.Column(db.String(50), nullable=True, index=True)
     tool_source = db.Column(db.String(50), default="logs", nullable=True)
-    evidence_id = db.Column(db.Integer, db.ForeignKey('evidence.id'), nullable=False)
+    evidence_id = db.Column(db.Integer, db.ForeignKey('evidence.id'), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return f"<ForensicLog ID={self.event_id} Risk={self.risk_level}>"
+

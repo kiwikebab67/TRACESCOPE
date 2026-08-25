@@ -117,17 +117,23 @@ const Navbar = ({ toggleSidebar }) => {
           <Settings className="w-5 h-5" />
         </button>
 
-        <div 
-          onClick={() => {
-            if (window.confirm("Are you sure you want to log out?")) {
-              localStorage.removeItem('tracescope_token');
-              localStorage.removeItem('activeCaseId');
-              window.location.href = '/login';
-            }
-          }}
-          title="Logout"
-          className="h-8 w-8 rounded-full bg-gradient-to-tr from-[var(--ts-blue)] to-[var(--ts-purple)] flex items-center justify-center text-white shadow-[0_0_10px_var(--ts-glow)] ml-2 cursor-pointer hover:opacity-80 transition-opacity">
-          <User className="w-4 h-4" />
+        <div className="flex items-center gap-2 ml-2">
+          <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            {localStorage.getItem('user_role') || 'Investigator'}
+          </span>
+          <div 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to log out?")) {
+                localStorage.removeItem('tracescope_token');
+                localStorage.removeItem('user_role');
+                localStorage.removeItem('activeCaseId');
+                window.location.href = '/login';
+              }
+            }}
+            title="Logout"
+            className="h-8 w-8 rounded-full bg-gradient-to-tr from-[var(--ts-blue)] to-[var(--ts-purple)] flex items-center justify-center text-white shadow-[0_0_10px_var(--ts-glow)] cursor-pointer hover:opacity-80 transition-opacity">
+            <User className="w-4 h-4" />
+          </div>
         </div>
       </div>
     </header>

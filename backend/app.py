@@ -1,6 +1,7 @@
 from services.analyzer import calculate_md5, evaluate_log_risk, analyze_malware_file, analyze_memory_dump, extract_real_hex, extract_real_strings, disassemble_entry_point
 from services.artifact_parser import parse_evtx_log, parse_pcap_capture, parse_autopsy_disk, parse_registry_hive, parse_email_artifact, parse_browser_sqlite, parse_prefetch, parse_lnk, parse_cloudtrail, parse_linux_syslog, parse_auditd_log
 from services.threat_intel import query_virustotal_hash, query_abuseipdb
+from services.yara_scanner import get_yara_matches
 import os
 import hashlib
 import json 
@@ -36,22 +37,30 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    # Force schema update for SQLite role column
+    try:
+        db.session.execute(db.text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'Investigator'"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
     # Seed default admin user if it doesn't exist
     admin_user = User.query.filter_by(username='admin').first()
     if not admin_user:
         hashed_password = bcrypt.hashpw('admin123!'.encode('utf-8'), bcrypt.gensalt())
-        admin_user = User(username='admin', password_hash=hashed_password.decode('utf-8'))
+        admin_user = User(username='admin', password_hash=hashed_password.decode('utf-8'), role='Admin')
         db.session.add(admin_user)
         db.session.commit()
-        print("Default admin user created (admin / admin123!)")
+        print("Default admin user created (admin / admin123! [Role: Admin])")
+    elif getattr(admin_user, 'role', None) != 'Admin':
+        admin_user.role = 'Admin'
+        db.session.commit()
     
-    # Force schema update for SQLite since create_all() doesn't alter tables
+    # Force schema update for SQLite user_id on cases
     try:
         db.session.execute(db.text("ALTER TABLE cases ADD COLUMN user_id INTEGER REFERENCES users(id)"))
         db.session.commit()
-        print("Successfully added user_id column to cases table.")
-    except Exception as e:
-        # Column likely already exists
+    except Exception:
         db.session.rollback()
     
     # Migrate legacy cases to the admin user
@@ -61,7 +70,6 @@ with app.app_context():
         legacy_case.user_id = admin_user.id
     if legacy_cases:
         db.session.commit()
-        print(f"Migrated {len(legacy_cases)} legacy cases to the admin user.")
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
@@ -92,11 +100,24 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
+def role_required(allowed_roles):
+    """RBAC Middleware Decorator enforcing Role-Based Access Control"""
+    def decorator(f):
+        @wraps(f)
+        def decorated(current_user, *args, **kwargs):
+            user_role = getattr(current_user, 'role', 'Investigator')
+            if user_role not in allowed_roles and 'Admin' not in user_role:
+                return jsonify({'message': f'Access denied. Required role: {allowed_roles}'}), 403
+            return f(current_user, *args, **kwargs)
+        return decorated
+    return decorator
+
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     data = request.json
     username = data.get('username')
     password = data.get('password')
+    role = data.get('role', 'Investigator')
     
     if not username or not password:
         return jsonify({'message': 'Username and password required'}), 400
@@ -105,11 +126,11 @@ def register():
         return jsonify({'message': 'User already exists'}), 400
         
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    new_user = User(username=username, password_hash=hashed_password.decode('utf-8'))
+    new_user = User(username=username, password_hash=hashed_password.decode('utf-8'), role=role)
     db.session.add(new_user)
     db.session.commit()
     
-    return jsonify({'message': 'User created successfully'}), 201
+    return jsonify({'message': 'User created successfully', 'role': new_user.role}), 201
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -125,13 +146,15 @@ def login():
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         return jsonify({'message': 'Invalid credentials'}), 401
         
+    user_role = getattr(user, 'role', 'Investigator')
     token = jwt.encode({
         'user_id': user.id,
         'username': user.username,
+        'role': user_role,
         'exp': datetime.utcnow() + timedelta(hours=24)
     }, app.config['SECRET_KEY'], algorithm="HS256")
     
-    return jsonify({'token': token, 'username': user.username})
+    return jsonify({'token': token, 'username': user.username, 'role': user_role})
 
 @app.errorhandler(404)
 def serve_react(e):
@@ -1265,7 +1288,23 @@ def upload_evidence(current_user, case_id):
             case_id=case.id
         )
         db.session.add(new_evidence)
-        db.session.commit() 
+        db.session.commit()
+
+        # Automated YARA Background Daemon Sweep
+        yara_matches = get_yara_matches(save_path)
+        for ym in yara_matches:
+            db_yara_log = ForensicLog(
+                time_created=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                event_id=9999,
+                source="YARA Daemon Scanner",
+                description=f"[YARA RULE MATCH]: {ym['rule_id']} - {ym['description']} (Tags: {', '.join(ym.get('tags', []))})",
+                risk_level=ym.get('threat_level', 'HIGH').title(),
+                tool_source="yara",
+                evidence_id=new_evidence.id
+            )
+            db.session.add(db_yara_log)
+        if yara_matches:
+            db.session.commit()
         
         def clear_old_logs(tool_src):
             logs_to_delete = ForensicLog.query.join(Evidence).filter(
@@ -1859,6 +1898,49 @@ def ingest_ebpf_telemetry(current_user):
         'events_processed': ingested_count
     })
 
+@app.route('/api/v1/forensics/yara-scan', methods=['POST'])
+@token_required
+def yara_scan_endpoint(current_user):
+    data = request.json or {}
+    evidence_id = data.get('evidence_id')
+    custom_rules = data.get('custom_rules')
+    
+    if not evidence_id:
+        return jsonify({'status': 'error', 'message': 'evidence_id required'}), 400
+        
+    ev = Evidence.query.get(evidence_id)
+    if not ev:
+        return jsonify({'status': 'error', 'message': 'Evidence not found'}), 404
+        
+    filepath = ev.filepath
+    if not os.path.exists(filepath):
+        return jsonify({'status': 'error', 'message': 'File missing from disk'}), 404
+        
+    matches = get_yara_matches(filepath, custom_rules=custom_rules)
+    
+    # Store matches in ForensicLog
+    for m in matches:
+        db.session.add(ForensicLog(
+            evidence_id=ev.id,
+            event_id=9999,
+            time_created=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            source='YARA Interactive Scanner',
+            description=f"[YARA MATCH]: {m['rule_id']} - {m['description']}",
+            risk_level=m.get('threat_level', 'HIGH').title(),
+            tool_source='yara'
+        ))
+    if matches:
+        db.session.commit()
+        
+    return jsonify({
+        'status': 'success',
+        'evidence_id': ev.id,
+        'filename': ev.filename,
+        'matches_count': len(matches),
+        'matches': matches
+    })
+
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
