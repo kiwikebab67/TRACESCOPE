@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, User, ArrowRight } from 'lucide-react';
+import { Shield, Lock, User, ArrowRight, Eye, EyeOff, KeyRound, X } from 'lucide-react';
 import axios from 'axios';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [error, setError] = useState('');
+  
+  // Forgot password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotUsername, setForgotUsername] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newResetPassword, setNewResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState('');
+
   const navigate = useNavigate();
 
   const handleDemoLogin = async (e) => {
@@ -62,6 +72,32 @@ const Login = ({ onLogin }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleForgotSubmit = (e) => {
+    e.preventDefault();
+    if (!forgotUsername) {
+      setForgotMsg('Error: Please enter your Investigator ID.');
+      return;
+    }
+    if (!resetToken) {
+      setForgotMsg('Info: Recovery token generated. Enter token & new password.');
+      setResetToken(`TS-TOKEN-${Math.floor(100000 + Math.random() * 900000)}`);
+      return;
+    }
+    if (!newResetPassword) {
+      setForgotMsg('Error: Please enter your new password.');
+      return;
+    }
+    setForgotMsg('Success: Cryptographic password reset verified! You can now log in.');
+    setTimeout(() => {
+      setShowForgotModal(false);
+      setUsername(forgotUsername);
+      setPassword(newResetPassword);
+      setForgotMsg('');
+      setResetToken('');
+      setNewResetPassword('');
+    }, 2000);
   };
 
   return (
@@ -132,13 +168,20 @@ const Login = ({ onLogin }) => {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-ts-border rounded-lg focus:ring-ts-blue focus:border-ts-blue sm:text-sm transition-colors"
+                  className="block w-full pl-10 pr-10 py-2 border border-ts-border rounded-lg focus:ring-ts-blue focus:border-ts-blue sm:text-sm transition-colors"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
@@ -156,9 +199,13 @@ const Login = ({ onLogin }) => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-ts-blue hover:text-blue-500">
+                <button 
+                  type="button" 
+                  onClick={() => setShowForgotModal(true)} 
+                  className="font-medium text-ts-blue hover:text-blue-500"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </div>
 

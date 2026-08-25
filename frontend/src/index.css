@@ -4,20 +4,20 @@
 
 @layer base {
   :root {
-    /* Light Cyberpunk Theme */
-    --ts-bg: #f8fafc;
-    --ts-panel: #ffffff;
-    --ts-border: #e2e8f0;
-    --ts-text: #0f172a;
-    --ts-text-muted: #64748b;
+    /* Executive Slate Frost (Light Grey) Theme */
+    --ts-bg: #f1f5f9; /* Slate 100 - soft non-glare light grey */
+    --ts-panel: #ffffff; /* Crisp white card panel */
+    --ts-border: #cbd5e1; /* Slate 300 sharp crisp borders */
+    --ts-text: #0f172a; /* Slate 900 executive contrast text */
+    --ts-text-muted: #475569; /* Slate 600 readable muted text */
     
-    /* Neon Accents */
-    --ts-blue: #00f0ff; /* Cyberpunk Cyan */
-    --ts-purple: #ff003c; /* Cyberpunk Magenta */
-    --ts-pink: #ff00ff;
+    /* Cyber Accents */
+    --ts-blue: #0284c7; /* Sky 600 Cyber Accent */
+    --ts-purple: #e11d48; /* Rose 600 Highlight */
+    --ts-pink: #d946ef;
     
-    --ts-glow: rgba(0, 240, 255, 0.4);
-    --ts-glow-magenta: rgba(255, 0, 60, 0.4);
+    --ts-glow: rgba(2, 132, 199, 0.25);
+    --ts-glow-magenta: rgba(225, 29, 72, 0.25);
   }
 
   .dark {

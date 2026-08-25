@@ -195,8 +195,12 @@ const Dashboard = () => {
         </div>
         <div className="flex gap-4 relative z-10">
           <button 
-            onClick={() => window.open('/api/cases/1/report', '_blank')}
-            className="btn-secondary py-2 px-4 flex items-center gap-2 hover:bg-[var(--ts-purple)]/20 hover:text-white transition-all"
+            onClick={() => {
+              const cid = localStorage.getItem('activeCaseId') || 1;
+              const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+              window.open(`${baseUrl}/api/cases/${cid}/report`, '_blank');
+            }}
+            className="btn-secondary py-2 px-4 flex items-center gap-2 hover:bg-[var(--ts-purple)]/20 hover:text-white transition-all cursor-pointer"
           >
             <FileText className="w-4 h-4" /> Export Report
           </button>
