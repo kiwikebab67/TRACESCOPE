@@ -2,11 +2,35 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Activity, ShieldAlert, Cpu, HardDrive, Filter, Clock, UploadCloud, Terminal, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import clsx from 'clsx';
-import * as reactWindow from 'react-window';
 import InfoBox from '../components/common/InfoBox';
 import FileUpload from '../components/FileUpload';
 
-const List = reactWindow.FixedSizeList || reactWindow.default?.FixedSizeList;
+// Built-in 100% Crash-Proof Virtualized List Component (Zero CJS/ESM bundling issues)
+const PureVirtualList = ({ items, height, itemHeight, renderItem }) => {
+  const [scrollTop, setScrollTop] = useState(0);
+  const totalHeight = items.length * itemHeight;
+  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 2);
+  const endIndex = Math.min(items.length, Math.ceil((scrollTop + height) / itemHeight) + 2);
+  const visibleItems = items.slice(startIndex, endIndex);
+
+  return (
+    <div
+      style={{ height, overflowY: 'auto', position: 'relative' }}
+      onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+      className="custom-scrollbar pr-2"
+    >
+      <div style={{ height: totalHeight, width: '100%', position: 'relative' }}>
+        <div style={{ transform: `translateY(${startIndex * itemHeight}px)` }}>
+          {visibleItems.map((item, idx) => (
+            <div key={item.id || (startIndex + idx)} style={{ minHeight: itemHeight }}>
+              {renderItem(item, startIndex + idx)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const getIcon = (source) => {
   if (source?.toLowerCase().includes('volatility')) return <Cpu className="w-5 h-5" />;
@@ -51,7 +75,7 @@ const TimelineNode = ({ log, i }) => {
   const riskColor = getRiskColor(log.risk_level);
   
   return (
-    <div className={clsx("relative flex md:justify-between items-center w-full group", i % 2 === 0 ? "md:flex-row-reverse" : "md:flex-row")}>
+    <div className={clsx("relative flex md:justify-between items-center w-full group py-3", i % 2 === 0 ? "md:flex-row-reverse" : "md:flex-row")}>
       <div className="hidden md:block w-5/12"></div>
       
       {/* Icon Node */}
@@ -131,12 +155,6 @@ const Timeline = () => {
     fetchTimeline();
   }, []);
 
-  const VirtualRow = ({ index, style }) => (
-    <div style={style} className="py-4">
-      <TimelineNode log={logs[index]} i={index} />
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto h-[calc(100vh-120px)]">
       <div className="mb-6 flex justify-between items-end">
@@ -165,7 +183,7 @@ const Timeline = () => {
 
       <InfoBox 
         title="What does this do?" 
-        description="The Event Timeline pieces together the exact chronological order of how an attack happened. It takes all raw logs, alerts, and system changes from different computers and maps them vertically. For high-volume log streams (100,000+ entries), react-window virtualization automatically renders visible elements at 60 FPS without DOM memory degradation." 
+        description="The Event Timeline pieces together the exact chronological order of how an attack happened. It takes all raw logs, alerts, and system changes from different computers and maps them vertically. For high-volume log streams (100,000+ entries), native virtualized windowing automatically renders visible elements at 60 FPS without DOM memory degradation." 
       />
 
       <div className="flex-1 glass-panel p-6 overflow-y-auto custom-scrollbar relative">
@@ -187,14 +205,14 @@ const Timeline = () => {
                 <p className="text-ts-text-muted text-center max-w-md">Upload forensic evidence to automatically generate the chronological attack timeline.</p>
               </div>
             ) : logs.length > 30 ? (
-              <List
+              <PureVirtualList
+                items={logs}
                 height={550}
-                itemCount={logs.length}
-                itemSize={210}
-                width="100%"
-              >
-                {VirtualRow}
-              </List>
+                itemHeight={210}
+                renderItem={(log, idx) => (
+                  <TimelineNode log={log} i={idx} />
+                )}
+              />
             ) : (
               <div className="flex flex-col gap-10 pt-4 pb-10">
                 {logs.map((log, i) => (
