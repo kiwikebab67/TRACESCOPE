@@ -115,10 +115,6 @@ const Navbar = ({ toggleSidebar }) => {
 
   return (
     <div className="flex flex-col shrink-0">
-      <div className="h-6 w-full bg-[#ff003c] flex items-center justify-center text-[0.6rem] font-bold text-white tracking-[0.3em]">
-        CLASSIFICATION: TOP SECRET // TRACESCOPE FOR OFFICIAL USE ONLY
-      </div>
-      
       <header className="bg-[var(--ts-panel)] border-b border-[var(--ts-border)] h-16 flex items-center justify-between px-6 shrink-0 transition-colors duration-300 relative">
         <div className="flex items-center gap-4">
           <button 
