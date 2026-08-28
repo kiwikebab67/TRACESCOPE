@@ -28,6 +28,7 @@ import BrowserArtifacts from './pages/BrowserArtifacts';
 import OSINT from './pages/OSINT';
 import MobileAnalysis from './pages/MobileAnalysis';
 import Web3Forensics from './pages/Web3Forensics';
+import UrlScanner from './pages/UrlScanner';
 import axios from 'axios';
 
 // Configure Axios globally
@@ -119,6 +120,7 @@ function App() {
           <Route path="/email" element={<ProtectedRoute><EmailInvestigation /></ProtectedRoute>} />
           <Route path="/browser" element={<ProtectedRoute><BrowserArtifacts /></ProtectedRoute>} />
           <Route path="/threat-intel" element={<ProtectedRoute><ThreatIntelligence /></ProtectedRoute>} />
+          <Route path="/url-scanner" element={<ProtectedRoute><UrlScanner /></ProtectedRoute>} />
           <Route path="/hashes" element={<ProtectedRoute><HashDatabase /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/mobile" element={<ProtectedRoute><MobileAnalysis /></ProtectedRoute>} />

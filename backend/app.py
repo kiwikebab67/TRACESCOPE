@@ -1939,6 +1939,18 @@ def yara_scan_endpoint(current_user):
         'matches': matches
     })
 
+@app.route('/api/v1/forensics/url-scan', methods=['POST'])
+def url_scan_endpoint():
+    data = request.json or {}
+    target_url = data.get('url', '').strip()
+    if not target_url:
+        return jsonify({'status': 'error', 'message': 'No URL provided for scanning.'}), 400
+        
+    vt_key = data.get('vt_api_key')
+    from services.url_scanner import scan_url
+    result = scan_url(target_url, vt_api_key=vt_key)
+    return jsonify(result)
+
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)

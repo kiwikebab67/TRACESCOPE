@@ -65,6 +65,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       items: [
         { name: 'Threat Tracker', icon: Globe2, path: '/osint' },
         { name: 'Threat Intel', icon: ShieldAlert, path: '/threat-intel' },
+        { name: 'URL Scanner', icon: Globe, path: '/url-scanner' },
         { name: 'IOC Scanner', icon: Scan, path: '/ioc-scanner' },
         { name: 'Hash Matrix', icon: Hash, path: '/hashes' },
       ]
