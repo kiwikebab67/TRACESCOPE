@@ -1785,13 +1785,12 @@ def emulate_payload(current_user):
     return jsonify(result)
 
 @app.route('/api/v1/forensics/deobfuscate', methods=['POST'])
-@token_required
-def deobfuscate_payload(current_user):
-    data = request.json
-    if not data or 'payload' not in data:
+def deobfuscate_payload():
+    data = request.json or {}
+    payload = data.get('payload', '')
+    if not payload:
         return jsonify({'status': 'error', 'message': 'No payload provided'}), 400
         
-    payload = data['payload']
     model = data.get('model', 'llama3')
     
     from services.ollama_ai import analyze_payload_with_ollama

@@ -16,7 +16,7 @@ const AIAssistant = () => {
   const messagesEndRef = useRef(null);
   
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'deobfuscate'
-  const [payloadInput, setPayloadInput] = useState('');
+  const [payloadInput, setPayloadInput] = useState('&("{1}{0}{2}" -f \'et-Local\',\'G\',\'User\')');
   const [deobfuscateResult, setDeobfuscateResult] = useState('');
   const [isDeobfuscating, setIsDeobfuscating] = useState(false);
 
@@ -52,9 +52,12 @@ const AIAssistant = () => {
 
     try {
       const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const token = localStorage.getItem('token');
       const response = await axios.post(`${baseUrl}/api/ai/chat`, {
         case_id: activeCaseId,
         message: userMsg
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       // Simulate a slight delay for realistic typing effect
@@ -78,15 +81,25 @@ const AIAssistant = () => {
     
     try {
       const baseUrl = import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:5000' : '');
+      const token = localStorage.getItem('token');
       const response = await axios.post(`${baseUrl}/api/v1/forensics/deobfuscate`, {
         payload: payloadInput,
         model: 'llama3'
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       
-      setDeobfuscateResult(response.data.analysis || 'No analysis provided.');
+      if (response.data && response.data.analysis) {
+        setDeobfuscateResult(response.data.analysis);
+      } else if (response.data && response.data.message) {
+        setDeobfuscateResult(response.data.message);
+      } else {
+        setDeobfuscateResult('No analysis provided.');
+      }
     } catch (error) {
       console.error('Failed to deobfuscate payload:', error);
-      setDeobfuscateResult('Failed to connect to local Ollama instance on localhost:11434.');
+      const msg = error.response?.data?.message || error.message || 'Failed to connect to local Ollama instance on localhost:11434.';
+      setDeobfuscateResult(`Analysis Warning: ${msg}`);
     } finally {
       setIsDeobfuscating(false);
     }
